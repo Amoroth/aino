@@ -1,0 +1,9 @@
+[project]
+name = "aino"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "litestar[standard]>=2.18.0",
+]
