@@ -4,7 +4,7 @@ pub struct Note {}
 
 pub struct NoteRepo {
     pub store: storage::Store
-};
+}
 
 impl NoteRepo {
     pub fn select_note_by_id(&self, id: u64) -> Note {

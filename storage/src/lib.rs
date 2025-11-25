@@ -25,28 +25,9 @@ pub struct Row {
     pub values: Vec<Value>
 }
 
-pub enum QueryType {
-    Select
+pub trait Store {
+    fn query(&self, query: String) -> Vec<Vec<String>>;
 }
-
-pub enum ConditionOperator {
-    Eq
-}
-
-pub struct Condition {
-    pub column: String,
-    pub operator: ConditionOperator,
-    pub value: Vec<String>
-}
-
-pub struct Query {
-    pub query_type: QueryType,
-    pub select: Vec<String>,
-    pub from: String,
-    pub conditions: Vec<Condition>
-}
-
-pub struct Store {}
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
