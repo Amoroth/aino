@@ -1,4 +1,4 @@
-mod backend;
+pub mod backend; // todo not public
 
 // todo get storage struct
 // todo add a way to assign a driver (sqlite only for now)
@@ -18,7 +18,14 @@ pub enum Backend {
 
 pub enum Value {
     Integer(i64),
+    String(String),
     Null
+}
+
+impl From<String> for Value {
+    fn from(value: String) -> Self {
+        Value::String(value)
+    }
 }
 
 pub struct Row {
@@ -26,8 +33,12 @@ pub struct Row {
 }
 
 pub trait Store {
-    fn query(&self, query: String) -> Vec<Vec<String>>;
+    fn query(&self, query: String) -> Vec<Row>;
 }
+
+
+#[derive(Debug, Clone)]
+pub struct StoreQueryError;
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right

@@ -14,7 +14,7 @@ impl SqliteStore {
 }
 
 impl Store for SqliteStore {
-    fn query(&self, query: String) -> Vec<Vec<String>> {
+    fn query(&self, query: String) -> Vec<Row> {
         let conn = match self.open() {
             Ok(c) => c,
             Err(e) => panic!("{}", e) // todo handle error
@@ -25,18 +25,19 @@ impl Store for SqliteStore {
             Err(e) => panic!("{}", e) // todo handle error
         };
 
-        let mut rows: Vec<Vec<String>> = vec![];
+        let mut rows: Vec<Row> = vec![];
 
         let rows_iter = stmt.query_map([], |row| {
-            let mut values: Vec<String> = vec![];
+            let mut values: Row = Row { values: vec![] };
             let mut index = 0;
 
             loop {
                 let value = match row.get::<usize, Option<String>>(index) {
-                    Ok(value) => value.unwrap().into(),
-                    Err(e) => break,
+                    Ok(value) => Value::from(value.unwrap_or(String::from(""))),
+                    Err(_) => break,
                 };
-                values.push(value);
+                values.values.push(value);
+                index += 1;
             }
 
             Ok(values)
