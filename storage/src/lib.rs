@@ -17,7 +17,7 @@ pub enum Backend {
 }
 
 pub struct Row {
-    pub values: Vec<String>
+    pub values: Vec<(String, String)>
 }
 
 pub trait Store {
