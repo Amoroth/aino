@@ -1,6 +1,6 @@
 use rusqlite::{Connection, Error};
 
-use crate::{Row, Store, Value};
+use crate::{Row, Store};
 
 pub struct SqliteStore {
 }
@@ -33,7 +33,7 @@ impl Store for SqliteStore {
 
             loop {
                 let value = match row.get::<usize, Option<String>>(index) {
-                    Ok(value) => Value::from(value.unwrap_or(String::from(""))),
+                    Ok(value) => value.unwrap_or(String::from("")),
                     Err(_) => break,
                 };
                 values.values.push(value);

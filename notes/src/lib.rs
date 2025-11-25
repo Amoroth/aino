@@ -2,13 +2,13 @@ use storage::{Store, StoreQueryError};
 use storage::backend::sqlite::SqliteStore;
 
 pub struct Note {
-    // pub id: u64,
+    pub id: u64,
 }
 
 impl Clone for Note {
     fn clone(&self) -> Self {
         Note {
-            // id: self.id,
+            id: self.id,
         }
     }
 }
@@ -22,8 +22,10 @@ impl NoteRepo {
         let result: Vec<Note> = self.store
             .query("SELECT * FROM notes WHERE id = ".to_string() + &id.to_string())
             .iter()
-            .map(|rows| {
-                Note {}
+            .map(|row| {
+                Note {
+                    id: row.values[0].parse::<u64>().unwrap(),
+                }
             })
             .take(1)
             .collect();

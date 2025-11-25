@@ -16,20 +16,8 @@ pub enum Backend {
     Sqlite
 }
 
-pub enum Value {
-    Integer(i64),
-    String(String),
-    Null
-}
-
-impl From<String> for Value {
-    fn from(value: String) -> Self {
-        Value::String(value)
-    }
-}
-
 pub struct Row {
-    pub values: Vec<Value>
+    pub values: Vec<String>
 }
 
 pub trait Store {
