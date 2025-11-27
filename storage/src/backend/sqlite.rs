@@ -10,10 +10,6 @@ pub struct SqliteStore {
 // lazyly (or maybe uses some pooling mechanism?) if could create
 // the connection right here making mutable not needed
 impl SqliteStore {
-    pub fn new() -> Self {
-        SqliteStore { connection: None }
-    }
-
     fn open(&mut self) -> Result<&Connection, Error> {
         if self.connection.is_some() {
             return Ok(self.connection.as_ref().unwrap());
@@ -28,6 +24,10 @@ impl SqliteStore {
 
 // todo implement something like QueryResult instead of Vec<Row> that will hold column names and all rows and map them correctly usindg struct methods?
 impl Store for SqliteStore {
+    fn new() -> Self {
+        SqliteStore { connection: None }
+    }
+
     // todo parametries for query and parsing the query to database agnostic way
     fn exec(&mut self, query: String) {
         let conn = match self.open() {
