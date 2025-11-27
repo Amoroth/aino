@@ -3,12 +3,14 @@ use storage::backend::sqlite::SqliteStore;
 
 pub struct Note {
     pub id: u64,
+    pub content: String
 }
 
 impl Clone for Note {
     fn clone(&self) -> Self {
         Note {
             id: self.id,
+            content: self.content.clone(),
         }
     }
 }
@@ -25,10 +27,15 @@ impl NoteRepo {
             .map(|row| {
                 Note {
                     id: row.get("id").unwrap_or(&"0".to_string()).parse::<u64>().unwrap(),
+                    content: row.get("content").unwrap_or(&"".to_string()).to_string(),
                 }
             })
             .take(1)
             .collect();
+
+        if result.len() == 0 {
+            return Err(StoreQueryError);
+        }
         Ok(result[0].clone())
     }
 }

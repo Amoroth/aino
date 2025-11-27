@@ -1,4 +1,6 @@
-use rusqlite::{Connection, Error};
+use std::any::{Any, TypeId};
+
+use rusqlite::{Connection, Error, ToSql};
 
 use crate::{Row, Store};
 
@@ -13,14 +15,14 @@ impl SqliteStore {
     }
 
     // todo move to base?
-    fn map_query(&self, row_values: Vec<Vec<String>>, column_names: Vec<&str>) -> Vec<Row> {
+    fn map_query(&self, row_values: Vec<Vec<String>>, column_names: Vec<String>) -> Vec<Row> {
         let mut rows: Vec<Row> = vec![];
 
         for values in row_values {
             let mut row = Row { values: vec![] };
 
             for (index, value) in values.iter().enumerate() {
-                let column_name = column_names.get(index).unwrap_or(&"").to_string();
+                let column_name = column_names.get(index).unwrap_or(&"".to_string()).to_string();
                 row.values.push((column_name, value.to_string()));
             }
 
@@ -33,7 +35,21 @@ impl SqliteStore {
 
 // todo implement something like QueryResult instead of Vec<Row> that will hold column names and all rows and map them correctly usindg struct methods?
 impl Store for SqliteStore {
+    // todo parametries for query and parsing the query to database agnostic way
+    fn exec(&self, query: String) {
+        let conn = match self.open() {
+            Ok(c) => c,
+            Err(e) => panic!("{}", e) // todo handle error
+        };
+
+        match conn.execute(&query, []) {
+            Ok(_) => (),
+            Err(e) => panic!("{}", e) // todo handle error
+        }
+    }
+
     fn query(&self, query: String) -> Vec<Row> {
+        println!("Executing query: {}", query);
         let conn = match self.open() {
             Ok(c) => c,
             Err(e) => panic!("{}", e) // todo handle error
@@ -44,53 +60,73 @@ impl Store for SqliteStore {
             Err(e) => panic!("{}", e) // todo handle error
         };
 
-        let mut row_values: Vec<Vec<String>> = vec![];
+        let columns = stmt.columns();
+        let column_names: Vec<String> = columns.iter().map(|col| col.name().to_string()).collect();
+        let column_types: Vec<String> = columns.iter().map(|col| col.decl_type().unwrap_or("").to_string()).collect();
 
-        let rows_iter = stmt.query([]);
+        let rows_iter = stmt.query([]).unwrap();
 
-        let _ = rows_iter.unwrap().map(|row| {
+        let row_values = rows_iter.mapped(|row| {
+            println!("Row found");
             let mut values: Vec<String> = vec![];
             let mut index = 0;
 
-            loop {
-                let value = match row.get::<usize, Option<String>>(index) {
-                    Ok(value) => value.unwrap_or(String::from("")),
-                    Err(_) => break,
+            for column_name in column_types.iter() {
+                println!("Getting column index: {}", index);
+
+                let value: String = match column_name.as_str() {
+                    "TEXT" => match row.get(index) {
+                            Ok(value) => value,
+                            Err(Error::InvalidColumnType(_, _, _)) => {
+                                index += 1;
+                                continue
+                            },
+                            Err(e) => {
+                                println!("{}", e);
+                                break
+                            },
+                        },
+                    "INTEGER" => match row.get::<usize, i64>(index) {
+                            Ok(value) => value.to_string(),
+                            Err(Error::InvalidColumnType(_, _, _)) => {
+                                index += 1;
+                                continue
+                            },
+                            Err(e) => {
+                                println!("{}", e);
+                                break
+                            },
+                        },
+                    "REAL" => match row.get::<usize, f64>(index) {
+                            Ok(value) => value.to_string(),
+                            Err(Error::InvalidColumnType(_, _, _)) => {
+                                index += 1;
+                                continue
+                            },
+                            Err(e) => {
+                                println!("{}", e);
+                                break
+                            },
+                        },
+                    "" => {
+                        index += 1;
+                        continue
+                    },
+                    _ => {
+                        index += 1;
+                        continue
+                    },
                 };
+                println!("Value: {}", value);
                 values.push(value);
                 index += 1;
             }
 
-            row_values.push(values);
-
-            Ok(())
+            Ok(values)
         });
 
-        let column_names = stmt.column_names().to_vec();
-        
+        let row_values: Vec<Vec<String>> = row_values.map(|r| r.unwrap()).collect();
+        println!("Query returned {} rows", row_values.len());
         self.map_query(row_values, column_names)
-        
-        // let rows_iter = stmt.query_map([], |row| {
-        //     let mut values: Row = Row { values: vec![] };
-        //     let mut index = 0;
-
-        //     loop {
-        //         let value = match row.get::<usize, Option<String>>(index) {
-        //             Ok(value) => value.unwrap_or(String::from("")),
-        //             Err(_) => break,
-        //         };
-        //         let column_name: String = stmt.column_name(index).unwrap_or("").to_string();
-        //         values.values.push((column_name, value));
-        //         index += 1;
-        //     }
-
-        //     Ok(values)
-        // }).unwrap();
-
-        // for (index, row) in rows_iter.enumerate() {
-        //     rows.push(row.unwrap());
-        // }
-
-        // rows
     }
 }

@@ -33,6 +33,7 @@ impl Row {
 }
 
 pub trait Store {
+    fn exec(&self, query: String) -> ();
     fn query(&self, query: String) -> Vec<Row>;
 }
 
