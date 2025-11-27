@@ -24,7 +24,7 @@ impl NoteRepo {
             .iter()
             .map(|row| {
                 Note {
-                    id: row.values[0].parse::<u64>().unwrap(),
+                    id: row.get("id").unwrap_or(&"0".to_string()).parse::<u64>().unwrap(),
                 }
             })
             .take(1)

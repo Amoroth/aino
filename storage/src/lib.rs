@@ -20,6 +20,18 @@ pub struct Row {
     pub values: Vec<(String, String)>
 }
 
+impl Row {
+    // todo generic for autmatic pasring?
+    pub fn get(&self, column_name: &str) -> Option<&String> {
+        for (name, value) in &self.values {
+            if name == column_name {
+                return Some(value);
+            }
+        }
+        None
+    }
+}
+
 pub trait Store {
     fn query(&self, query: String) -> Vec<Row>;
 }
