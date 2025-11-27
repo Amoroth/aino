@@ -33,8 +33,8 @@ impl Row {
 }
 
 pub trait Store {
-    fn exec(&self, query: String) -> ();
-    fn query(&self, query: String) -> Vec<Row>;
+    fn exec(&mut self, query: String) -> ();
+    fn query(&mut self, query: String) -> Vec<Row>;
 }
 
 

@@ -19,8 +19,9 @@ pub struct NoteRepo {
     pub store: SqliteStore
 }
 
+// todo try to make this unmutable
 impl NoteRepo {
-    pub fn select_note_by_id(&self, id: u64) -> Result<Note, StoreQueryError> {
+    pub fn select_note_by_id(&mut self, id: u64) -> Result<Note, StoreQueryError> {
         let result: Vec<Note> = self.store
             .query("SELECT * FROM notes WHERE id = ".to_string() + &id.to_string())
             .iter()

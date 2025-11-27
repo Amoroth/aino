@@ -1,42 +1,35 @@
-use std::any::{Any, TypeId};
-
-use rusqlite::{Connection, Error, ToSql};
+use rusqlite::{Connection, Error};
 
 use crate::{Row, Store};
 
 pub struct SqliteStore {
+    connection: Option<Connection>,
 }
 
+// todo try to make this unmutable if new creates connection none
+// lazyly (or maybe uses some pooling mechanism?) if could create
+// the connection right here making mutable not needed
 impl SqliteStore {
-    fn open(&self) -> Result<Connection, Error> {
-        // todo save it in struct?
-        let conn = Connection::open("./aino.db")?;
-        Ok(conn)
+    pub fn new() -> Self {
+        SqliteStore { connection: None }
     }
 
-    // todo move to base?
-    fn map_query(&self, row_values: Vec<Vec<String>>, column_names: Vec<String>) -> Vec<Row> {
-        let mut rows: Vec<Row> = vec![];
-
-        for values in row_values {
-            let mut row = Row { values: vec![] };
-
-            for (index, value) in values.iter().enumerate() {
-                let column_name = column_names.get(index).unwrap_or(&"".to_string()).to_string();
-                row.values.push((column_name, value.to_string()));
-            }
-
-            rows.push(row);
+    fn open(&mut self) -> Result<&Connection, Error> {
+        if self.connection.is_some() {
+            return Ok(self.connection.as_ref().unwrap());
         }
 
-        rows
+        let conn = Connection::open("./aino.db")?;
+        self.connection = Some(conn);
+
+        Ok(self.connection.as_ref().unwrap())
     }
 }
 
 // todo implement something like QueryResult instead of Vec<Row> that will hold column names and all rows and map them correctly usindg struct methods?
 impl Store for SqliteStore {
     // todo parametries for query and parsing the query to database agnostic way
-    fn exec(&self, query: String) {
+    fn exec(&mut self, query: String) {
         let conn = match self.open() {
             Ok(c) => c,
             Err(e) => panic!("{}", e) // todo handle error
@@ -48,7 +41,7 @@ impl Store for SqliteStore {
         }
     }
 
-    fn query(&self, query: String) -> Vec<Row> {
+    fn query(&mut self, query: String) -> Vec<Row> {
         println!("Executing query: {}", query);
         let conn = match self.open() {
             Ok(c) => c,
@@ -68,13 +61,13 @@ impl Store for SqliteStore {
 
         let row_values = rows_iter.mapped(|row| {
             println!("Row found");
-            let mut values: Vec<String> = vec![];
+            let mut values: Vec<(String, String)> = vec![];
             let mut index = 0;
 
-            for column_name in column_types.iter() {
+            for column_type in column_types.iter() {
                 println!("Getting column index: {}", index);
 
-                let value: String = match column_name.as_str() {
+                let value: String = match column_type.as_str() {
                     "TEXT" => match row.get(index) {
                             Ok(value) => value,
                             Err(Error::InvalidColumnType(_, _, _)) => {
@@ -118,15 +111,17 @@ impl Store for SqliteStore {
                     },
                 };
                 println!("Value: {}", value);
-                values.push(value);
+                values.push((column_names.get(index).unwrap_or(&String::from("")).clone(), value));
                 index += 1;
             }
 
             Ok(values)
         });
 
-        let row_values: Vec<Vec<String>> = row_values.map(|r| r.unwrap()).collect();
-        println!("Query returned {} rows", row_values.len());
-        self.map_query(row_values, column_names)
+        println!("Query returned {} rows", row_values.size_hint().0);
+        row_values.map(|r| {
+            let r = r.unwrap();
+            Row { values: r }
+        }).collect()
     }
 }
