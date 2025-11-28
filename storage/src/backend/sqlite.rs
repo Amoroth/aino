@@ -125,3 +125,14 @@ impl StoreTrait for SqliteStore {
         }).collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn creates_store_without_connection() {
+        let store = SqliteStore::new();
+        assert!(store.connection.is_none());
+    }
+}
