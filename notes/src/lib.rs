@@ -1,5 +1,4 @@
-use storage::{Store, StoreQueryError};
-use storage::backend::sqlite::SqliteStore;
+use storage::{Store, StoreTrait, StoreQueryError};
 
 pub struct Note {
     pub id: u64,
@@ -16,7 +15,7 @@ impl Clone for Note {
 }
 
 pub struct NoteRepo {
-    pub store: SqliteStore
+    pub store: Store,
 }
 
 // todo try to make this unmutable

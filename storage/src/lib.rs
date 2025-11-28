@@ -32,10 +32,54 @@ impl Row {
     }
 }
 
-pub trait Store {
-    fn new() -> Self;
+pub trait StoreTrait {
     fn exec(&mut self, query: String) -> ();
     fn query(&mut self, query: String) -> Vec<Row>;
+}
+
+pub struct Store {
+    pub backend: Backend,
+    #[cfg(feature = "sqlite")]
+    sqlite_store: Option<backend::sqlite::SqliteStore>
+}
+
+impl Store {
+    pub fn new(backend: Backend) -> Self {
+        match backend {
+            #[cfg(feature = "sqlite")]
+            Backend::Sqlite => {
+                Store {
+                    backend,
+                    sqlite_store: Some(backend::sqlite::SqliteStore::new())
+                }
+            }
+        }
+    }
+}
+
+impl StoreTrait for Store {
+    fn exec(&mut self, query: String) {
+        match self.backend {
+            #[cfg(feature = "sqlite")]
+            Backend::Sqlite => {
+                if let Some(store) = &mut self.sqlite_store {
+                    store.exec(query);
+                }
+            }
+        }
+    }
+
+    fn query(&mut self, query: String) -> Vec<Row> {
+        match self.backend {
+            #[cfg(feature = "sqlite")]
+            Backend::Sqlite => {
+                if let Some(store) = &mut self.sqlite_store {
+                    return store.query(query);
+                }
+            }
+        }
+        vec![]
+    }
 }
 
 
