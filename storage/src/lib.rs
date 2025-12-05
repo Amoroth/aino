@@ -34,6 +34,8 @@ impl Row {
 
 pub trait StoreTrait {
     fn exec(&mut self, query: String) -> ();
+    /// Executes a query, same as exec but returns last inserted id
+    fn insert(&mut self, query: String) -> Result<i64, StoreQueryError>;
     fn query(&mut self, query: String) -> Vec<Row>;
 }
 
@@ -69,16 +71,32 @@ impl StoreTrait for Store {
         }
     }
 
+    fn insert(&mut self, query: String) -> Result<i64, StoreQueryError> {
+        match self.backend {
+            #[cfg(feature = "sqlite")]
+            Backend::Sqlite => {
+                if let Some(store) = &mut self.sqlite_store {
+                    store.insert(query)
+                } else {
+                    Err(StoreQueryError)
+                }
+            }
+            _ => Err(StoreQueryError)
+        }
+    }
+
     fn query(&mut self, query: String) -> Vec<Row> {
         match self.backend {
             #[cfg(feature = "sqlite")]
             Backend::Sqlite => {
                 if let Some(store) = &mut self.sqlite_store {
                     return store.query(query);
+                } else {
+                    return vec![];
                 }
-            }
+            },
+            _ => vec![]
         }
-        vec![]
     }
 }
 

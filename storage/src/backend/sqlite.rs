@@ -1,6 +1,6 @@
 use rusqlite::{Connection, Error};
 
-use crate::{Row, StoreTrait};
+use crate::{Row, StoreTrait, StoreQueryError};
 
 pub struct SqliteStore {
     connection: Option<Connection>,
@@ -38,6 +38,20 @@ impl StoreTrait for SqliteStore {
         match conn.execute(&query, []) {
             Ok(_) => (),
             Err(e) => panic!("{}", e) // todo handle error
+        }
+    }
+
+    fn insert(&mut self, query: String) -> Result<i64, StoreQueryError> {
+        self.exec(query);
+
+        let conn = match self.open() {
+            Ok(c) => c,
+            Err(e) => panic!("{}", e) // todo handle error
+        };
+
+        match conn.query_one("SELECT last_insert_rowid()", [], |row| row.get::<usize, i64>(0)) {
+            Ok(id) => Ok(id),
+            Err(_) => Err(StoreQueryError)
         }
     }
 

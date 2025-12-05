@@ -1,5 +1,9 @@
 use storage::{Store, StoreTrait, StoreQueryError};
 
+pub struct NoteInsert {
+    pub content: String
+}
+
 pub struct Note {
     pub id: u64,
     pub content: String
@@ -37,6 +41,12 @@ impl NoteRepo {
             return Err(StoreQueryError);
         }
         Ok(result[0].clone())
+    }
+
+    pub fn insert_note(&mut self, note: NoteInsert) {
+        // todo exec should return Result
+        // todo sanitize input to avoid sql injection via parameterized queries
+        self.store.exec(format!("INSERT INTO notes (content) VALUES ('{}');", &note.content));
     }
 }
 
