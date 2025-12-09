@@ -69,7 +69,7 @@ impl TagRepo {
         Ok(result[0].clone())
     }
 
-    pub fn add_tags_to_note(&mut self, note_id: u64, tags: &Vec<Tag>) {
+    pub fn add_tags_to_note_id(&mut self, note_id: u64, tags: &Vec<Tag>) {
         for tag in tags.iter() {
             self.store.exec(format!("INSERT INTO note_tags (note_id, tag_id) VALUES ({}, {});", note_id, tag.id));
         }

@@ -72,7 +72,7 @@ pub fn build_new_command() -> CliCommand {
             let store = Store::new(storage::Backend::Sqlite);
             let mut repo = NoteRepo { store };
             let note_id = repo.insert(NoteInsert { content: note_content.trim().to_string() });
-            tag_repo.add_tags_to_note(note_id.unwrap() as u64, &tags); // handle error
+            tag_repo.add_tags_to_note_id(note_id.unwrap() as u64, &tags); // handle error
         }).build()
 }
 
