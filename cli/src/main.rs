@@ -26,6 +26,7 @@ fn main() {
         .add_subcommand(&note_commands::build_list_command())
         .add_subcommand(&note_commands::build_get_command())
         .add_subcommand(&note_commands::build_delete_command())
+        .add_subcommand(&note_commands::build_edit_command())
         .build();
     cli.run(env::args());
 }

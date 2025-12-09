@@ -42,6 +42,8 @@ impl StoreTrait for SqliteStore {
     }
 
     fn insert(&mut self, query: String) -> Result<i64, StoreQueryError> {
+        // todo check if its actually an insert because it wont work for any other query
+        // todo move the check up to the base store?
         self.exec(query);
 
         let conn = match self.open() {

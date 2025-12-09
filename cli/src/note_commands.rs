@@ -158,6 +158,72 @@ pub fn build_delete_command() -> CliCommand {
         }).build()
 }
 
+pub fn build_edit_command() -> CliCommand {
+    CliCommandBuilder::default()
+        .set_name("edit")
+        .set_description("Edit a single note by its id")
+        .add_argument("id")
+        .add_option(
+            &CliCommandOption {
+                name: "message".to_string(),
+                short_name: Some("m".to_string()),
+                description: Some("Replace note by this string. If --interactive option is passed, it is discarded.".to_string()),
+                is_flag: false
+            }
+        ).add_option(
+            &CliCommandOption {
+                name: "interactive".to_string(),
+                short_name: Some("i".to_string()),
+                description: Some("Edit note interactivly through an external editor. One has to be provided through config or it will fail.".to_string()),
+                is_flag: false
+            }
+        ).set_action(|args: HashMap<String, Vec<String>>| {
+            let id_str = args.get("id").and_then(|v| v.last());
+            let id = match id_str {
+                Some(id) => match id.parse::<u32>() {
+                    Ok(id) => id,
+                    Err(_) => {
+                        eprintln!("{}", print_utils::colorize(print_utils::Color::error(), format!("Invalid id: {id}").as_str()));
+                        return;
+                    }
+                },
+                None => {
+                    eprintln!("{}", print_utils::colorize(print_utils::Color::error(), "Error: Note id is required."));
+                    return;
+                }
+            };
+
+            let store = Store::new(storage::Backend::Sqlite);
+            let mut repo = NoteRepo { store };
+
+            let mut note = match repo.get_by_id(id.into()) {
+                Ok(note) => note,
+                Err(_) => {
+                    eprintln!("{}", print_utils::colorize(print_utils::Color::warning(), format!("Note with id {id} not found.").as_str()));
+                    return;
+                }
+            };
+
+            let edited_note_content = if args.contains_key("interactive") || !args.contains_key("message") {
+                match get_from_editor(Some(note.content)) {
+                    Ok(content) => content,
+                    Err(EditorOutputError) => {
+                        if args.contains_key("message") {
+                            args.get("message").and_then(|v| v.last()).unwrap_or(&String::new()).to_string()
+                        } else {
+                            return;
+                        }
+                    }
+                }
+            } else {
+                args.get("message").and_then(|v| v.last()).unwrap_or(&String::new()).to_string()
+            };
+
+            note.content = edited_note_content.trim().to_string();
+            repo.update(&note);
+        }).build()
+}
+
 struct EditorOutputError;
 
 fn get_from_editor(put_content: Option<String>) -> Result<String, EditorOutputError> {

@@ -66,6 +66,10 @@ impl NoteRepo {
     pub fn delete_by_id(&mut self, id: u32) {
         self.store.exec(format!("DELETE FROM notes WHERE id = {};", id));
     }
+
+    pub fn update(&mut self, note: &Note) {
+        self.store.exec(format!("UPDATE notes SET content = '{}' WHERE id = {};", note.content, note.id));
+    }
 }
 
 #[cfg(test)]
