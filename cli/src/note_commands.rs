@@ -117,8 +117,35 @@ pub fn build_get_command() -> CliCommand {
 
                     // todo store should operate on i64 instead
                     // todo Option instead of Result?
-                    if let Ok(note) = repo.select_by_id(id.into()) {
+                    if let Ok(note) = repo.get_by_id(id.into()) {
                         println!("{}", note.content);
+                    } else {
+                        eprintln!("{}", print_utils::colorize(print_utils::Color::warning(), format!("Note with id {id} not found.").as_str()));
+                    }
+                } else {
+                    eprintln!("{}", print_utils::colorize(print_utils::Color::error(), format!("Invalid id: {id_str}").as_str()));
+                }
+            } else {
+                eprintln!("{}", print_utils::colorize(print_utils::Color::error(), "Error: Note id is required."));
+            }
+        }).build()
+}
+
+pub fn build_delete_command() -> CliCommand {
+    CliCommandBuilder::default()
+        .set_name("delete")
+        .add_alias("remove")
+        .add_alias("rm")
+        .set_description("Delete a single note by its id")
+        .add_argument("id")
+        .set_action(|args: HashMap<String, Vec<String>>| {
+            if let Some(id_str) = args.get("id").and_then(|v| v.last()) {
+                if let Ok(id) = id_str.parse::<u32>() {
+                    let store = Store::new(storage::Backend::Sqlite);
+                    let mut repo = NoteRepo { store };
+
+                    if repo.get_by_id(id.into()).is_ok() {
+                        repo.delete_by_id(id);
                     } else {
                         eprintln!("{}", print_utils::colorize(print_utils::Color::warning(), format!("Note with id {id} not found.").as_str()));
                     }

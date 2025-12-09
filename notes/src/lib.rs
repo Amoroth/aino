@@ -38,7 +38,7 @@ impl NoteRepo {
         results
     }
 
-    pub fn select_by_id(&mut self, id: u64) -> Result<Note, StoreQueryError> {
+    pub fn get_by_id(&mut self, id: u64) -> Result<Note, StoreQueryError> {
         let result: Vec<Note> = self.store
             .query("SELECT * FROM notes WHERE id = ".to_string() + &id.to_string())
             .iter()
@@ -61,6 +61,10 @@ impl NoteRepo {
         // todo exec should return Result
         // todo sanitize input to avoid sql injection via parameterized queries
         self.store.exec(format!("INSERT INTO notes (content) VALUES ('{}');", &note.content));
+    }
+
+    pub fn delete_by_id(&mut self, id: u32) {
+        self.store.exec(format!("DELETE FROM notes WHERE id = {};", id));
     }
 }
 
