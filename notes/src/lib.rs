@@ -24,7 +24,21 @@ pub struct NoteRepo {
 
 // todo try to make this unmutable
 impl NoteRepo {
-    pub fn select_note_by_id(&mut self, id: u64) -> Result<Note, StoreQueryError> {
+    pub fn get_all(&mut self) -> Vec<Note> {
+        let results: Vec<Note> = self.store
+            .query("SELECT * FROM notes".to_string())
+            .iter()
+            .map(|row| {
+                Note {
+                    id: row.get("id").unwrap_or(&"0".to_string()).parse::<u64>().unwrap(),
+                    content: row.get("content").unwrap_or(&"".to_string()).to_string(),
+                }
+            })
+            .collect();
+        results
+    }
+
+    pub fn select_by_id(&mut self, id: u64) -> Result<Note, StoreQueryError> {
         let result: Vec<Note> = self.store
             .query("SELECT * FROM notes WHERE id = ".to_string() + &id.to_string())
             .iter()
@@ -43,7 +57,7 @@ impl NoteRepo {
         Ok(result[0].clone())
     }
 
-    pub fn insert_note(&mut self, note: NoteInsert) {
+    pub fn insert(&mut self, note: NoteInsert) {
         // todo exec should return Result
         // todo sanitize input to avoid sql injection via parameterized queries
         self.store.exec(format!("INSERT INTO notes (content) VALUES ('{}');", &note.content));

@@ -62,7 +62,45 @@ pub fn build_new_command() -> CliCommand {
             // todo pass in store as a layer to cli builder or something
             let store = Store::new(storage::Backend::Sqlite);
             let mut repo = NoteRepo { store };
-            repo.insert_note(NoteInsert { content: note_content.trim().to_string() });
+            repo.insert(NoteInsert { content: note_content.trim().to_string() });
+        }).build()
+}
+
+pub fn build_list_command() -> CliCommand {
+    CliCommandBuilder::default()
+        .set_name("list")
+        .add_alias("ls")
+        .set_description("List all notes")
+        .add_option(
+            &CliCommandOption {
+                name: "tag".to_string(),
+                short_name: Some("t".to_string()),
+                description: Some("Search by a tag".to_string()),
+                is_flag: false
+            }
+        ).set_action(|args: HashMap<String, Vec<String>>| {
+            let store = Store::new(storage::Backend::Sqlite);
+            let mut repo = NoteRepo { store };
+            let mut notes = repo.get_all();
+            if notes.is_empty() {
+                println!("{}", print_utils::colorize(print_utils::Color::warning(), "No notes found."));
+            } else {
+                // let tags = args.get("tag").unwrap_or(&vec![]).clone();
+
+                // if !tags.is_empty() {
+                //     notes.retain(|note| note.tags.iter().any(|tag| tags.contains(tag)));
+                // }
+
+                println!("Notes:");
+                for note in notes {
+                    let note_content = if note.content.len() > 50 {
+                        format!("{}...", &note.content[..47])
+                    } else {
+                        note.content.clone()
+                    };
+                    println!("{}. {}", note.id, note_content);
+                }
+            }
         }).build()
 }
 
@@ -79,7 +117,7 @@ pub fn build_get_command() -> CliCommand {
 
                     // todo store should operate on i64 instead
                     // todo Option instead of Result?
-                    if let Ok(note) = repo.select_note_by_id(id.into()) {
+                    if let Ok(note) = repo.select_by_id(id.into()) {
                         println!("{}", note.content);
                     } else {
                         eprintln!("{}", print_utils::colorize(print_utils::Color::warning(), format!("Note with id {id} not found.").as_str()));

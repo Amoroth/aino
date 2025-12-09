@@ -23,6 +23,7 @@ fn main() {
         .set_version(ROOT_VERSION)
         .set_description("A simplistic tool for managing notes")
         .add_subcommand(&note_commands::build_new_command())
+        .add_subcommand(&note_commands::build_list_command())
         .add_subcommand(&note_commands::build_get_command())
         .build();
     cli.run(env::args());
