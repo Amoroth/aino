@@ -15,6 +15,8 @@ fn main() {
 
     // add this to some kind of one time initialization routine
     store.exec(String::from("CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT NOT NULL);"));
+    store.exec(String::from("CREATE TABLE IF NOT EXISTS tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);"));
+    store.exec(String::from("CREATE TABLE IF NOT EXISTS note_tags (id INTEGER PRIMARY KEY AUTOINCREMENT, note_id INTEGER NOT NULL, tag_id INTEGER NOT NULL, FOREIGN KEY(note_id) REFERENCES notes(id), FOREIGN KEY(tag_id) REFERENCES tags(id));"));
 
     // todo #945 add variadic positional argument
     // todo #946 add option to builder, to let help not be action taken if no command is not specified and instead print error

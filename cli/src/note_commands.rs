@@ -2,8 +2,9 @@ use std::{collections::HashMap, io::Write};
 
 use crate::cli_command::{CliCommandBuilder, CliCommand, CliCommandOption};
 use crate::{print_utils, config};
+use notes::tags::{TagInsert, Tag, TagRepo};
+use notes::notes::{NoteInsert, Note, NoteRepo};
 use storage::Store;
-use notes::{NoteInsert, Note, NoteRepo};
 
 pub fn build_new_command() -> CliCommand {
     CliCommandBuilder::default()
@@ -52,17 +53,26 @@ pub fn build_new_command() -> CliCommand {
                 return;
             }
 
+            let store = Store::new(storage::Backend::Sqlite);
+            let mut tag_repo = TagRepo { store };
+
             println!("Creating new note: {note_content}");
-            // todo
-            // let tags: Vec<String> = args.get("tag").unwrap_or(&vec![]).clone();
-            // if !tags.is_empty() {
-            //     println!("With tags: {tags:?}");
-            // }
+            let tags: Vec<Tag> = args.get("tag").unwrap_or(&vec![]).clone().iter().map(|t| {
+                tag_repo.find_by_name(t).unwrap_or_else(|_| {
+                    tag_repo.insert(TagInsert { name: t.to_string() });
+                    tag_repo.find_by_name(t).unwrap()
+                })
+            }).collect();
+
+            if !tags.is_empty() {
+                println!("With tags: {tags:?}");
+            }
 
             // todo pass in store as a layer to cli builder or something
             let store = Store::new(storage::Backend::Sqlite);
             let mut repo = NoteRepo { store };
-            repo.insert(NoteInsert { content: note_content.trim().to_string() });
+            let note_id = repo.insert(NoteInsert { content: note_content.trim().to_string() });
+            tag_repo.add_tags_to_note(note_id.unwrap() as u64, &tags); // handle error
         }).build()
 }
 
