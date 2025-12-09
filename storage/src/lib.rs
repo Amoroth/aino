@@ -1,15 +1,11 @@
 pub mod backend; // todo not public
 
 // todo get storage struct
-// todo add a way to assign a driver (sqlite only for now)
 // todo add a way to structure record generically
-// todo insert a new record
 // todo read a row
 // todo modify row
 // todo delete row
 // todo add dependencies behind features for sqlite and so on
-
-// todo a way to select backend
 
 pub enum Backend {
     #[cfg(feature = "sqlite")]
@@ -81,7 +77,6 @@ impl StoreTrait for Store {
                     Err(StoreQueryError)
                 }
             }
-            _ => Err(StoreQueryError)
         }
     }
 
@@ -94,12 +89,10 @@ impl StoreTrait for Store {
                 } else {
                     return vec![];
                 }
-            },
-            _ => vec![]
+            }
         }
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct StoreQueryError;

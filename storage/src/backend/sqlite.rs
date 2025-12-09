@@ -19,7 +19,7 @@ impl SqliteStore {
             return Ok(self.connection.as_ref().unwrap());
         }
 
-        let conn = Connection::open("./aino.db")?;
+        let conn = Connection::open("./aino.db")?; // todo make connection string assignable
         self.connection = Some(conn);
 
         Ok(self.connection.as_ref().unwrap())
@@ -56,6 +56,7 @@ impl StoreTrait for SqliteStore {
     }
 
     fn query(&mut self, query: String) -> Vec<Row> {
+        // todo add a logging library to handle levels and not log this by default
         println!("Executing query: {}", query);
         let conn = match self.open() {
             Ok(c) => c,

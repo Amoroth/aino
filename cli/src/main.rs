@@ -1,15 +1,37 @@
+mod cli_command;
+mod note_commands;
+mod print_utils;
+mod config;
+
+use std::env;
+
+use cli_command::{CliCommandBuilder, CliCommand};
 use storage::{Store, StoreTrait};
-use notes::{NoteInsert, NoteRepo};
+
+const ROOT_VERSION: &str = "0.1.0";
 
 fn main() {
     let mut store = Store::new(storage::Backend::Sqlite);
 
+    // add this to some kind of one time initialization routine
     store.exec(String::from("CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT NOT NULL);"));
-    let mut repo = NoteRepo { store };
-    repo.insert_note(NoteInsert { content: "This is my eight note".to_string() });
-    let note = repo.select_note_by_id(7);
-    match note {
-        Ok(n) => println!("Note ID: {}, Content: {}", n.id, n.content),
-        Err(e) => println!("Error retrieving note: {:?}", e),
-    }
+
+    // todo #945 add variadic positional argument
+    // todo #946 add option to builder, to let help not be action taken if no command is not specified and instead print error
+    let cli: CliCommand = CliCommandBuilder::default()
+        .set_name("Aino")
+        .set_version(ROOT_VERSION)
+        .set_description("A simplistic tool for managing notes")
+        .add_subcommand(&note_commands::build_new_command())
+        .add_subcommand(&note_commands::build_get_command())
+        .build();
+    cli.run(env::args());
 }
+
+// todo #947 better error handling
+// todo #948 add tests
+// todo #949 save notes in markdown/org-mode files with json as a manifest/metadata
+// todo #950 edit note tags and others
+// todo #951 projects support and persistant switching between them
+// todo #952 active tui
+// todo #954 expose api as a library for external usage

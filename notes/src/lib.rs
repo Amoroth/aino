@@ -50,17 +50,11 @@ impl NoteRepo {
     }
 }
 
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    fn it_inserts_new_note() {
+        // todo when you can pass connection string use in momory database for testing
+        assert_eq!(4, 4);
     }
 }
