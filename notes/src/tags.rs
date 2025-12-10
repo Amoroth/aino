@@ -36,7 +36,7 @@ impl TagRepo {
         self.store.exec(format!("INSERT INTO tags (name) VALUES ('{}');", &tag.name));
     }
 
-    pub fn get_all_for_note(&mut self, note_id: u64) -> Vec<Tag> {
+    pub fn get_all_by_note_id(&mut self, note_id: u64) -> Vec<Tag> {
         let results: Vec<Tag> = self.store
             .query(format!("SELECT t.id, t.name FROM tags t INNER JOIN note_tags nt ON t.id = nt.tag_id WHERE nt.note_id = {};", note_id))
             .iter()

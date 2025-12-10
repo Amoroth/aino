@@ -241,7 +241,8 @@ fn select_command(env_args: Vec<String>, command: &CliCommand) -> Option<&CliCom
         if !arg.starts_with("-") {
             if let Some(subcommand) = search_command(&arg, cmd) {
                 cmd = subcommand;
-            } else if cmd.arguments.is_empty() {
+            } else if cmd.arguments.is_empty() && cmd.options.is_empty() {
+                // todo checking if options is empty is a todo. we should check if the argument without a dash is part of an option or not
                 eprintln!("{}", print_utils::colorize(print_utils::Color::error(), format!("Command '{}' not found.", arg).as_str()));
                 println!("Please refer to --help for '{}' command.", cmd.name);
                 return None

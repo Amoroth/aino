@@ -95,11 +95,15 @@ pub fn build_list_command() -> CliCommand {
             if notes.is_empty() {
                 println!("{}", print_utils::colorize(print_utils::Color::warning(), "No notes found."));
             } else {
-                // let tags = args.get("tag").unwrap_or(&vec![]).clone();
+                let tags = args.get("tag").unwrap_or(&vec![]).clone();
 
-                // if !tags.is_empty() {
-                //     notes.retain(|note| note.tags.iter().any(|tag| tags.contains(tag)));
-                // }
+                if !tags.is_empty() {
+                    // todo use one and the same store for every repo
+                    let store = Store::new(storage::Backend::Sqlite);
+                    let mut tag_repo = TagRepo { store };
+                    // todo get tags in a batch somehow for every note or something
+                    notes.retain(|note| tag_repo.get_all_by_note_id(note.id).iter().any(|tag| tags.contains(&tag.name)));
+                }
 
                 println!("Notes:");
                 for note in notes {
