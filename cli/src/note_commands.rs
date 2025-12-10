@@ -172,9 +172,11 @@ pub fn build_search_command() -> CliCommand {
             let mut all_notes = repo.get_all();
 
             // filter by tags
-            // if let Some(tags_list) = tags {
-            //     all_notes.retain(|n| n.tags.iter().any(|t| tags_list.contains(t)));
-            // }
+            if let Some(tags_list) = tags {
+                let store = Store::new(storage::Backend::Sqlite);
+                let mut tag_repo = TagRepo { store };
+                all_notes.retain(|n| tag_repo.get_all_by_note_id(n.id).iter().any(|t| tags_list.contains(&t.name)));
+            }
 
             // filter by query
             if let Some(query_string) = query {
