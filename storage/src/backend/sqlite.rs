@@ -35,7 +35,7 @@ impl SqliteStore {
             return Ok(self.connection.as_ref().unwrap());
         }
 
-        let conn = Connection::open("./chai.db")?; // todo make connection string assignable
+        let conn = Connection::open("./aino.db")?; // todo make connection string assignable
         self.connection = Some(conn);
 
         Ok(self.connection.as_ref().unwrap())
