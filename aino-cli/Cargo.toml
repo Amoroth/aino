@@ -1,0 +1,12 @@
+[package]
+name = "aino-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cli = { path = "../cli" }
+storage = { path = "../storage" }
+notes = { path = "../notes" }
+# maybe, the config needs it but we may yet not need the config file
+serde = { version = "1.0.219", features = ["derive"] }
+toml = "0.9.2"

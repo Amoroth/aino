@@ -1,4 +1,4 @@
-use storage::{Store, StoreTrait, StoreQueryError};
+use storage::{Store, StoreTrait, StoreQueryError, Value};
 
 pub struct NoteInsert {
     pub content: String
@@ -26,7 +26,7 @@ pub struct NoteRepo {
 impl NoteRepo {
     pub fn get_all(&mut self) -> Vec<Note> {
         let results: Vec<Note> = self.store
-            .query("SELECT * FROM notes".to_string())
+            .query("SELECT * FROM notes".to_string(), &[])
             .iter()
             .map(|row| {
                 Note {
@@ -40,7 +40,7 @@ impl NoteRepo {
 
     pub fn get_by_id(&mut self, id: u64) -> Result<Note, StoreQueryError> {
         let result: Vec<Note> = self.store
-            .query("SELECT * FROM notes WHERE id = ".to_string() + &id.to_string())
+            .query("SELECT * FROM notes WHERE id = ?1".to_string(), &[Value::Integer(id as i64)])
             .iter()
             .map(|row| {
                 Note {
@@ -57,18 +57,18 @@ impl NoteRepo {
         Ok(result[0].clone())
     }
 
-    pub fn insert(&mut self, note: NoteInsert) -> Result<i64, StoreQueryError> {
+    pub fn insert(&mut self, note: NoteInsert) -> Result<u32, StoreQueryError> {
         // todo exec should return Result
         // todo sanitize input to avoid sql injection via parameterized queries
-        self.store.insert(format!("INSERT INTO notes (content) VALUES ('{}');", &note.content))
+        self.store.insert("INSERT INTO notes (content) VALUES (?1)".to_string(), &[Value::Text(note.content)])
     }
 
     pub fn delete_by_id(&mut self, id: u32) {
-        self.store.exec(format!("DELETE FROM notes WHERE id = {};", id));
+        self.store.exec("DELETE FROM notes WHERE id = ?1".to_string(), &[Value::Integer(id as i64)]);
     }
 
     pub fn update(&mut self, note: &Note) {
-        self.store.exec(format!("UPDATE notes SET content = '{}' WHERE id = {};", note.content, note.id));
+        self.store.exec("UPDATE notes SET content = ?1 WHERE id = ?2".to_string(), &[Value::Text(note.content.clone()), Value::Integer(note.id as i64)]);
     }
 }
 

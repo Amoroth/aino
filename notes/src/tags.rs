@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use storage::{Store, StoreTrait};
+use storage::{Store, StoreTrait, Value};
 
 pub struct TagInsert {
     pub name: String
@@ -33,12 +33,12 @@ pub struct TagRepo {
 // todo try to make this unmutable
 impl TagRepo {
     pub fn insert(&mut self, tag: TagInsert) {
-        self.store.exec(format!("INSERT INTO tags (name) VALUES ('{}');", &tag.name));
+        self.store.exec("INSERT INTO tags (name) VALUES (?1)".to_string(), &[Value::Text(tag.name)]);
     }
 
     pub fn get_all_by_note_id(&mut self, note_id: u64) -> Vec<Tag> {
         let results: Vec<Tag> = self.store
-            .query(format!("SELECT t.id, t.name FROM tags t INNER JOIN note_tags nt ON t.id = nt.tag_id WHERE nt.note_id = {};", note_id))
+            .query("SELECT t.id, t.name FROM tags t INNER JOIN note_tags nt ON t.id = nt.tag_id WHERE nt.note_id = ?1".to_string(), &[Value::Integer(note_id as i64)])
             .iter()
             .map(|row| {
                 Tag {
@@ -52,7 +52,7 @@ impl TagRepo {
 
     pub fn find_by_name(&mut self, name: &str) -> Result<Tag, ()> {
         let result: Vec<Tag> = self.store
-            .query(format!("SELECT * FROM tags WHERE name = '{}';", name))
+            .query("SELECT * FROM tags WHERE name = ?1;".to_string(), &[Value::Text(name.to_string())])
             .iter()
             .map(|row| {
                 Tag {
@@ -71,7 +71,7 @@ impl TagRepo {
 
     pub fn add_tags_to_note_id(&mut self, note_id: u64, tags: &Vec<Tag>) {
         for tag in tags.iter() {
-            self.store.exec(format!("INSERT INTO note_tags (note_id, tag_id) VALUES ({}, {});", note_id, tag.id));
+            self.store.exec("INSERT INTO note_tags (note_id, tag_id) VALUES (?1, ?2);".to_string(), &[Value::Integer(note_id as i64), Value::Integer(tag.id as i64)]);
         }
     }
 }

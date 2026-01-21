@@ -1,4 +1,4 @@
-mod print_utils;
+pub mod print_utils;
 
 use std::{collections::HashMap, env, io::Write};
 
