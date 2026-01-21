@@ -1,5 +1,6 @@
-use std::{collections::HashMap, env};
-use crate::print_utils;
+mod print_utils;
+
+use std::{collections::HashMap, env, io::Write};
 
 type CliCommandAction = fn(HashMap<String, Vec<String>>);
 
@@ -319,4 +320,51 @@ fn search_for_help_flag(env_args: Vec<String>) -> bool {
 
 fn search_for_version_flag(env_args: Vec<String>) -> bool {
     env_args.iter().any(|arg| arg == "--version" || arg == "-V")
+}
+
+#[allow(dead_code)]
+struct EditorOutputError;
+
+#[allow(dead_code)]
+fn get_from_editor(put_content: Option<String>) -> Result<String, EditorOutputError> {
+    let editor = match env::var("editor") {
+        Ok(e) => e,
+        Err(_) => {
+            eprintln!("{}", print_utils::colorize(print_utils::Color::error(), "No editor available!"));
+            return Err(EditorOutputError);
+        }
+    };
+    
+    // save note to temporary file
+    let temp_file_path = "/tmp/rustic_note_tmp.txt".to_string();
+    let mut file = match std::fs::File::create(&temp_file_path) {
+        Ok(file) => file,
+        Err(e) => {
+            eprintln!("{}", print_utils::colorize(print_utils::Color::error(), format!("Error creating temporary file: {e}").as_str()));
+            return Err(EditorOutputError);
+        }
+    };
+
+    if put_content.is_some() {
+        if let Err(e) = file.write_all(put_content.unwrap_or_default().to_string().trim().as_bytes()) {
+            eprintln!("{}", print_utils::colorize(print_utils::Color::error(), format!("Error writing note to temporary file: {e}").as_str()));
+            return Err(EditorOutputError);
+        }
+    }
+
+    std::process::Command::new(editor)
+        .arg(&temp_file_path)
+        .spawn()
+        .unwrap_or_else(|_| {panic!("{}", print_utils::colorize(print_utils::Color::error(), "Error: Failed to run editor"))})
+        .wait()
+        .unwrap_or_else(|_| {panic!("{}", print_utils::colorize(print_utils::Color::error(), "Error: Editor returned a non-zero status"))});
+    
+    // read the edited note back
+    match std::fs::read_to_string(&temp_file_path) {
+        Ok(content) => Ok(content),
+        Err(e) => {
+            eprintln!("{}", print_utils::colorize(print_utils::Color::error(), format!("Error reading edited note: {e}").as_str()));
+            Err(EditorOutputError)
+        }
+    }
 }

@@ -14,6 +14,7 @@ impl Color {
         }
     }
 
+    #[allow(dead_code)]
     pub fn success() -> Color {
         // todo #944 involve config?
         Color {
@@ -23,12 +24,8 @@ impl Color {
         }
     }
 
+    #[allow(dead_code)]
     pub fn warning() -> Color {
-        // Color {
-        //     red: 250,
-        //     green: 179,
-        //     blue: 135
-        // }
         Color {
             red: 249,
             green: 226,
