@@ -1,4 +1,4 @@
 [workspace]
 resolver = "3"
-members = ["aino-cli","cli","notes", "storage","store"]
+members = ["aino-cli","cli","notes","store"]
 default-members = ["aino-cli"]

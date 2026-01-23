@@ -1,11 +1,9 @@
-use std::sync::Arc;
 use std::{collections::HashMap, io::Write};
 
 use cli::{print_utils, CliCommandBuilder, CliCommand, CliCommandOption};
 use crate::{config};
-use notes::tags::{TagInsert, Tag, TagRepo};
+use notes::tags::{Tag, TagRepo};
 use notes::notes::{NoteInsert, Note, NoteRepo};
-use store::Store;
 
 pub fn build_new_command() -> CliCommand {
     CliCommandBuilder::default()
@@ -54,14 +52,12 @@ pub fn build_new_command() -> CliCommand {
                 return;
             }
 
-            // todo pass in store as a layer to cli builder or a clojure
-            let store = Store::new(store::Backend::Sqlite);
-            let mut tag_repo = TagRepo { store };
+            let mut tag_repo = TagRepo {};
 
             println!("Creating new note: {note_content}");
             let tags: Vec<Tag> = args.get("tag").unwrap_or(&vec![]).clone().iter().map(|t| {
                 tag_repo.find_by_name(t).unwrap_or_else(|_| {
-                    tag_repo.insert(TagInsert { name: t.to_string() });
+                    tag_repo.insert(Tag { name: t.to_string() });
                     tag_repo.find_by_name(t).unwrap()
                 })
             }).collect();
@@ -70,9 +66,9 @@ pub fn build_new_command() -> CliCommand {
                 println!("With tags: {tags:?}");
             }
 
-            let store = Store::new(store::Backend::Sqlite);
-            let mut repo = NoteRepo { store };
-            let note_id = repo.insert(NoteInsert { content: note_content.trim().to_string() });
+            let mut repo = NoteRepo {};
+            let config = config::get_config();
+            let note_id = repo.insert(&config.notes_directory, NoteInsert { content: note_content.trim().to_string() });
             tag_repo.add_tags_to_note_id(note_id.unwrap() as u64, &tags); // handle error
         }).build()
 }
@@ -90,9 +86,9 @@ pub fn build_list_command() -> CliCommand {
                 is_flag: false
             }
         ).set_action(|args: HashMap<String, Vec<String>>| {
-            let store = Store::new(store::Backend::Sqlite);
-            let mut repo = NoteRepo { store };
-            let mut notes = repo.get_all();
+            let mut repo = NoteRepo {};
+            let config = config::get_config();
+            let mut notes = repo.get_all(&config.notes_directory);
             if notes.is_empty() {
                 println!("{}", print_utils::colorize(print_utils::Color::warning(), "No notes found."));
             } else {
@@ -100,8 +96,7 @@ pub fn build_list_command() -> CliCommand {
 
                 if !tags.is_empty() {
                     // todo use one and the same store for every repo
-                    let store = Store::new(store::Backend::Sqlite);
-                    let mut tag_repo = TagRepo { store };
+                    let mut tag_repo = TagRepo {};
                     // todo get tags in a batch somehow for every note or something
                     notes.retain(|note| tag_repo.get_all_by_note_id(note.id).iter().any(|tag| tags.contains(&tag.name)));
                 }
@@ -127,12 +122,12 @@ pub fn build_get_command() -> CliCommand {
         .set_action(|args: HashMap<String, Vec<String>>| {
             if let Some(id_str) = args.get("id").and_then(|v| v.last()) {
                 if let Ok(id) = id_str.parse::<u32>() {
-                    let store = Store::new(store::Backend::Sqlite);
-                    let mut repo = NoteRepo { store };
+                    let mut repo = NoteRepo {};
 
                     // todo store should operate on i64 instead
                     // todo Option instead of Result?
-                    if let Ok(note) = repo.get_by_id(id.into()) {
+                    let config = config::get_config();
+                    if let Ok(note) = repo.get_by_id(&config.notes_directory, id.into()) {
                         println!("{}", note.content);
                     } else {
                         eprintln!("{}", print_utils::colorize(print_utils::Color::warning(), format!("Note with id {id} not found.").as_str()));
@@ -167,15 +162,14 @@ pub fn build_search_command() -> CliCommand {
                 eprintln!("{}", print_utils::colorize(print_utils::Color::error(), "Error: Query is required."));
             }
 
-            let store = Store::new(store::Backend::Sqlite);
-            let mut repo = NoteRepo { store };
+            let mut repo = NoteRepo {};
 
-            let mut all_notes = repo.get_all();
+            let config = config::get_config();
+            let mut all_notes = repo.get_all(&config.notes_directory);
 
             // filter by tags
             if let Some(tags_list) = tags {
-                let store = Store::new(store::Backend::Sqlite);
-                let mut tag_repo = TagRepo { store };
+                let mut tag_repo = TagRepo {};
                 all_notes.retain(|n| tag_repo.get_all_by_note_id(n.id).iter().any(|t| tags_list.contains(&t.name)));
             }
 
@@ -214,11 +208,11 @@ pub fn build_delete_command() -> CliCommand {
         .set_action(|args: HashMap<String, Vec<String>>| {
             if let Some(id_str) = args.get("id").and_then(|v| v.last()) {
                 if let Ok(id) = id_str.parse::<u32>() {
-                    let store = Store::new(store::Backend::Sqlite);
-                    let mut repo = NoteRepo { store };
+                    let mut repo = NoteRepo {};
 
-                    if repo.get_by_id(id.into()).is_ok() {
-                        repo.delete_by_id(id);
+                    let config = config::get_config();
+                    if repo.get_by_id(&config.notes_directory, id.into()).is_ok() {
+                        _ = repo.delete_by_id(&config.notes_directory, id);
                     } else {
                         eprintln!("{}", print_utils::colorize(print_utils::Color::warning(), format!("Note with id {id} not found.").as_str()));
                     }
@@ -266,10 +260,10 @@ pub fn build_edit_command() -> CliCommand {
                 }
             };
 
-            let store = Store::new(store::Backend::Sqlite);
-            let mut repo = NoteRepo { store };
+            let mut repo = NoteRepo {};
 
-            let mut note = match repo.get_by_id(id.into()) {
+            let config = config::get_config();
+            let mut note = match repo.get_by_id(&config.notes_directory, id.into()) {
                 Ok(note) => note,
                 Err(_) => {
                     eprintln!("{}", print_utils::colorize(print_utils::Color::warning(), format!("Note with id {id} not found.").as_str()));
@@ -293,7 +287,8 @@ pub fn build_edit_command() -> CliCommand {
             };
 
             note.content = edited_note_content.trim().to_string();
-            repo.update(&note);
+            let config = config::get_config();
+            _ = repo.update(&config.notes_directory, &note);
         }).build()
 }
 

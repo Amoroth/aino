@@ -1,4 +1,4 @@
-use std::{fs::read_to_string, path::Path};
+use std::{fs::read_to_string, path::Path, fmt::Debug};
 
 pub struct NoteInsert {
     pub content: String
@@ -9,9 +9,6 @@ pub struct Note {
     pub content: String
 }
 
-#[derive(Debug, Clone)]
-pub struct NoteIOError;
-
 impl Clone for Note {
     fn clone(&self) -> Self {
         Note {
@@ -21,7 +18,16 @@ impl Clone for Note {
     }
 }
 
+impl Debug for Note {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Note {{ id: {}, content: '{}' }}", self.id, self.content)
+    }
+}
+
 pub struct NoteRepo;
+
+#[derive(Debug, Clone)]
+pub struct NoteIOError;
 
 // todo try to make this immutable
 impl NoteRepo {
