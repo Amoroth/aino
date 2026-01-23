@@ -29,6 +29,8 @@ pub struct NoteRepo;
 #[derive(Debug, Clone)]
 pub struct NoteIOError;
 
+const SUPPORTED_FORMATS: [&str; 1] = ["md"];
+
 // todo try to make this immutable
 impl NoteRepo {
     pub fn get_all(&mut self, dir: &str) -> Vec<Note> {
@@ -39,13 +41,14 @@ impl NoteRepo {
 
         notes_directory.read_dir().unwrap().filter_map(|dir_entry| {
             let entry = dir_entry.ok()?;
-            // todo check extension / valid note somehow
-            if !entry.path().is_file() {
+            // todo this is way too long to check extension, right?
+            // todo valid note somehow
+            if !entry.path().is_file() || !SUPPORTED_FORMATS.contains(&entry.path().extension().unwrap_or_default().to_str().unwrap_or_default()) {
                 return None;
             }
 
             Some(Note {
-                id: entry.file_name().into_string().ok()?.parse().unwrap_or(0),
+                id: entry.path().file_stem()?.to_str().unwrap_or_default().parse().unwrap_or(0),
                 content: read_to_string(entry.path()).unwrap_or_default(),
             })
         }).collect()
@@ -59,13 +62,15 @@ impl NoteRepo {
 
         notes_directory.read_dir().unwrap().find_map(|dir_entry| {
             let entry = dir_entry.ok()?;
-            if !entry.path().is_file() {
+            if !entry.path().is_file() || !SUPPORTED_FORMATS.contains(&entry.path().extension().unwrap_or_default().to_str().unwrap_or_default()) {
                 return None;
             }
 
-            if entry.file_name().into_string().ok()?.parse().unwrap_or(0) == id {
+            let entry_name = entry.path().file_stem()?.to_str().unwrap_or_default().parse().unwrap_or(0);
+
+            if entry_name == id {
                 return Some(Note {
-                    id: entry.file_name().into_string().ok()?.parse().unwrap_or(0),
+                    id: entry_name,
                     content: read_to_string(entry.path()).unwrap_or_default(),
                 })
             }
@@ -92,7 +97,8 @@ impl NoteRepo {
             .max()
             .unwrap_or(0) + 1;
 
-        let new_file_path = notes_directory.join(new_id.to_string());
+        // todo should/can it be more safe?
+        let new_file_path = notes_directory.join(new_id.to_string() + ".md");
         std::fs::write(new_file_path, note.content).map_err(|_| NoteIOError)?;
 
         Ok(new_id as u32)
@@ -104,7 +110,7 @@ impl NoteRepo {
             return Err(NoteIOError);
         }
 
-        let file_path = notes_directory.join(id.to_string());
+        let file_path = notes_directory.join(id.to_string() + ".md");
         std::fs::remove_file(file_path).map_err(|_| NoteIOError)?;
         Ok(())
     }
@@ -115,7 +121,7 @@ impl NoteRepo {
             return Err(NoteIOError);
         }
 
-        let file_path = notes_directory.join(note.id.to_string());
+        let file_path = notes_directory.join(note.id.to_string() + ".md");
         std::fs::write(file_path, note.content.clone()).map_err(|_| NoteIOError)?;
         Ok(())
     }
