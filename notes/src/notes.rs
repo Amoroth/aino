@@ -1,4 +1,4 @@
-use store::{Store, StoreTrait, StoreQueryError, Value};
+use std::{fs::read_to_string, path::Path};
 
 pub struct NoteInsert {
     pub content: String
@@ -9,6 +9,9 @@ pub struct Note {
     pub content: String
 }
 
+#[derive(Debug, Clone)]
+pub struct NoteIOError;
+
 impl Clone for Note {
     fn clone(&self) -> Self {
         Note {
@@ -18,57 +21,96 @@ impl Clone for Note {
     }
 }
 
-pub struct NoteRepo {
-    pub store: Store,
-}
+pub struct NoteRepo;
 
-// todo try to make this unmutable
+// todo try to make this immutable
 impl NoteRepo {
-    pub fn get_all(&mut self) -> Vec<Note> {
-        let results: Vec<Note> = self.store
-            .query("SELECT * FROM notes".to_string(), &[])
-            .iter()
-            .map(|row| {
-                Note {
-                    id: row.get("id").unwrap_or(&"0".to_string()).parse::<u64>().unwrap(),
-                    content: row.get("content").unwrap_or(&"".to_string()).to_string(),
-                }
-            })
-            .collect();
-        results
-    }
-
-    pub fn get_by_id(&mut self, id: u64) -> Result<Note, StoreQueryError> {
-        let result: Vec<Note> = self.store
-            .query("SELECT * FROM notes WHERE id = ?1".to_string(), &[Value::Integer(id as i64)])
-            .iter()
-            .map(|row| {
-                Note {
-                    id: row.get("id").unwrap_or(&"0".to_string()).parse::<u64>().unwrap(),
-                    content: row.get("content").unwrap_or(&"".to_string()).to_string(),
-                }
-            })
-            .take(1)
-            .collect();
-
-        if result.len() == 0 {
-            return Err(StoreQueryError);
+    pub fn get_all(&mut self, dir: &str) -> Vec<Note> {
+        let notes_directory = Path::new(dir);
+        if !notes_directory.exists() {
+            return vec![];
         }
-        Ok(result[0].clone())
+
+        notes_directory.read_dir().unwrap().filter_map(|dir_entry| {
+            let entry = dir_entry.ok()?;
+            if !entry.path().is_file() {
+                return None;
+            }
+
+            Some(Note {
+                id: entry.file_name().into_string().ok()?.parse().unwrap_or(0),
+                content: read_to_string(entry.path()).unwrap_or_default(),
+            })
+        }).collect()
     }
 
-    pub fn insert(&mut self, note: NoteInsert) -> Result<u32, StoreQueryError> {
-        // todo exec should return Result
-        // todo sanitize input to avoid sql injection via parameterized queries
-        self.store.insert("INSERT INTO notes (content) VALUES (?1)".to_string(), &[Value::Text(note.content)])
+    pub fn get_by_id(&mut self, dir: &str, id: u64) -> Result<Note, NoteIOError> {
+        let notes_directory = Path::new(dir);
+        if !notes_directory.exists() {
+            return Err(NoteIOError);
+        }
+
+        notes_directory.read_dir().unwrap().find_map(|dir_entry| {
+            let entry = dir_entry.ok()?;
+            if !entry.path().is_file() {
+                return None;
+            }
+
+            if entry.file_name().into_string().ok()?.parse().unwrap_or(0) == id {
+                return Some(Note {
+                    id: entry.file_name().into_string().ok()?.parse().unwrap_or(0),
+                    content: read_to_string(entry.path()).unwrap_or_default(),
+                })
+            }
+
+            None
+        }).ok_or(NoteIOError)
     }
 
-    pub fn delete_by_id(&mut self, id: u32) {
-        self.store.exec("DELETE FROM notes WHERE id = ?1".to_string(), &[Value::Integer(id as i64)]);
+    pub fn insert(&mut self, dir: &str, note: NoteInsert) -> Result<u32, NoteIOError> {
+        let notes_directory = Path::new(dir);
+        if !notes_directory.exists() {
+            std::fs::create_dir_all(notes_directory).map_err(|_| NoteIOError)?;
+        }
+
+        let new_id = std::fs::read_dir(notes_directory)
+            .map_err(|_| NoteIOError)?
+            .filter_map(|entry| {
+                let entry = entry.ok()?;
+                if !entry.path().is_file() {
+                    return None;
+                }
+                entry.file_name().into_string().ok()?.parse::<u64>().ok()
+            })
+            .max()
+            .unwrap_or(0) + 1;
+
+        let new_file_path = notes_directory.join(new_id.to_string());
+        std::fs::write(new_file_path, note.content).map_err(|_| NoteIOError)?;
+
+        Ok(new_id as u32)
     }
 
-    pub fn update(&mut self, note: &Note) {
-        self.store.exec("UPDATE notes SET content = ?1 WHERE id = ?2".to_string(), &[Value::Text(note.content.clone()), Value::Integer(note.id as i64)]);
+    pub fn delete_by_id(&mut self, dir: &str, id: u32) -> Result<(), NoteIOError> {
+        let notes_directory = Path::new(dir);
+        if !notes_directory.exists() {
+            return Err(NoteIOError);
+        }
+
+        let file_path = notes_directory.join(id.to_string());
+        std::fs::remove_file(file_path).map_err(|_| NoteIOError)?;
+        Ok(())
+    }
+
+    pub fn update(&mut self, dir: &str, note: &Note) -> Result<(), NoteIOError> {
+        let notes_directory = Path::new(dir);
+        if !notes_directory.exists() {
+            return Err(NoteIOError);
+        }
+
+        let file_path = notes_directory.join(note.id.to_string());
+        std::fs::write(file_path, note.content.clone()).map_err(|_| NoteIOError)?;
+        Ok(())
     }
 }
 
