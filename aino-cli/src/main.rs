@@ -4,12 +4,12 @@ mod config;
 use std::env;
 
 use cli::{CliCommandBuilder, CliCommand};
-use storage::{Store, StoreTrait};
+use store::{Store, StoreTrait};
 
 const ROOT_VERSION: &str = "0.1.0";
 
 fn main() {
-    let mut store = Store::new(storage::Backend::Sqlite);
+    let mut store = Store::new(store::Backend::Sqlite);
 
     // add this to some kind of one time initialization routine
     store.exec(String::from("CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT NOT NULL);"), &[]);
@@ -39,3 +39,4 @@ fn main() {
 // todo #951 projects support and persistant switching between them
 // todo #952 active tui
 // todo #954 expose api as a library for external usage
+// todo inbox

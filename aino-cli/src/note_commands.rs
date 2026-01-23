@@ -5,7 +5,7 @@ use cli::{print_utils, CliCommandBuilder, CliCommand, CliCommandOption};
 use crate::{config};
 use notes::tags::{TagInsert, Tag, TagRepo};
 use notes::notes::{NoteInsert, Note, NoteRepo};
-use storage::Store;
+use store::Store;
 
 pub fn build_new_command() -> CliCommand {
     CliCommandBuilder::default()
@@ -55,7 +55,7 @@ pub fn build_new_command() -> CliCommand {
             }
 
             // todo pass in store as a layer to cli builder or a clojure
-            let store = Store::new(storage::Backend::Sqlite);
+            let store = Store::new(store::Backend::Sqlite);
             let mut tag_repo = TagRepo { store };
 
             println!("Creating new note: {note_content}");
@@ -70,7 +70,7 @@ pub fn build_new_command() -> CliCommand {
                 println!("With tags: {tags:?}");
             }
 
-            let store = Store::new(storage::Backend::Sqlite);
+            let store = Store::new(store::Backend::Sqlite);
             let mut repo = NoteRepo { store };
             let note_id = repo.insert(NoteInsert { content: note_content.trim().to_string() });
             tag_repo.add_tags_to_note_id(note_id.unwrap() as u64, &tags); // handle error
@@ -90,7 +90,7 @@ pub fn build_list_command() -> CliCommand {
                 is_flag: false
             }
         ).set_action(|args: HashMap<String, Vec<String>>| {
-            let store = Store::new(storage::Backend::Sqlite);
+            let store = Store::new(store::Backend::Sqlite);
             let mut repo = NoteRepo { store };
             let mut notes = repo.get_all();
             if notes.is_empty() {
@@ -100,7 +100,7 @@ pub fn build_list_command() -> CliCommand {
 
                 if !tags.is_empty() {
                     // todo use one and the same store for every repo
-                    let store = Store::new(storage::Backend::Sqlite);
+                    let store = Store::new(store::Backend::Sqlite);
                     let mut tag_repo = TagRepo { store };
                     // todo get tags in a batch somehow for every note or something
                     notes.retain(|note| tag_repo.get_all_by_note_id(note.id).iter().any(|tag| tags.contains(&tag.name)));
@@ -127,7 +127,7 @@ pub fn build_get_command() -> CliCommand {
         .set_action(|args: HashMap<String, Vec<String>>| {
             if let Some(id_str) = args.get("id").and_then(|v| v.last()) {
                 if let Ok(id) = id_str.parse::<u32>() {
-                    let store = Store::new(storage::Backend::Sqlite);
+                    let store = Store::new(store::Backend::Sqlite);
                     let mut repo = NoteRepo { store };
 
                     // todo store should operate on i64 instead
@@ -167,14 +167,14 @@ pub fn build_search_command() -> CliCommand {
                 eprintln!("{}", print_utils::colorize(print_utils::Color::error(), "Error: Query is required."));
             }
 
-            let store = Store::new(storage::Backend::Sqlite);
+            let store = Store::new(store::Backend::Sqlite);
             let mut repo = NoteRepo { store };
 
             let mut all_notes = repo.get_all();
 
             // filter by tags
             if let Some(tags_list) = tags {
-                let store = Store::new(storage::Backend::Sqlite);
+                let store = Store::new(store::Backend::Sqlite);
                 let mut tag_repo = TagRepo { store };
                 all_notes.retain(|n| tag_repo.get_all_by_note_id(n.id).iter().any(|t| tags_list.contains(&t.name)));
             }
@@ -214,7 +214,7 @@ pub fn build_delete_command() -> CliCommand {
         .set_action(|args: HashMap<String, Vec<String>>| {
             if let Some(id_str) = args.get("id").and_then(|v| v.last()) {
                 if let Ok(id) = id_str.parse::<u32>() {
-                    let store = Store::new(storage::Backend::Sqlite);
+                    let store = Store::new(store::Backend::Sqlite);
                     let mut repo = NoteRepo { store };
 
                     if repo.get_by_id(id.into()).is_ok() {
@@ -266,7 +266,7 @@ pub fn build_edit_command() -> CliCommand {
                 }
             };
 
-            let store = Store::new(storage::Backend::Sqlite);
+            let store = Store::new(store::Backend::Sqlite);
             let mut repo = NoteRepo { store };
 
             let mut note = match repo.get_by_id(id.into()) {

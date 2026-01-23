@@ -1,4 +1,4 @@
-use storage::{Store, StoreTrait, StoreQueryError, Value};
+use store::{Store, StoreTrait, StoreQueryError, Value};
 
 pub struct NoteInsert {
     pub content: String

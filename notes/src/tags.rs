@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use storage::{Store, StoreTrait, Value};
+use store::{Store, StoreTrait, Value};
 
 pub struct TagInsert {
     pub name: String

@@ -1,6 +1,6 @@
 pub mod backend; // todo not public
 
-// todo get storage struct
+// todo get store struct
 // todo add a way to structure record generically
 // todo read a row
 // todo modify row
