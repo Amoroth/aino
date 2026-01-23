@@ -1,2 +1,2 @@
-notes_directory = "."
+notes_directory = "vault"
 editor = "vim"

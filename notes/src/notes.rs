@@ -39,6 +39,7 @@ impl NoteRepo {
 
         notes_directory.read_dir().unwrap().filter_map(|dir_entry| {
             let entry = dir_entry.ok()?;
+            // todo check extension / valid note somehow
             if !entry.path().is_file() {
                 return None;
             }

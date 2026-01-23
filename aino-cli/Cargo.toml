@@ -5,7 +5,6 @@ edition = "2024"
 
 [dependencies]
 cli = { path = "../cli" }
-store = { path = "../store" }
 notes = { path = "../notes" }
 # maybe, the config needs it but we may yet not need the config file
 serde = { version = "1.0.219", features = ["derive"] }

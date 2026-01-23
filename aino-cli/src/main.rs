@@ -4,18 +4,10 @@ mod config;
 use std::env;
 
 use cli::{CliCommandBuilder, CliCommand};
-use store::{Store, StoreTrait};
 
 const ROOT_VERSION: &str = "0.1.0";
 
 fn main() {
-    let mut store = Store::new(store::Backend::Sqlite);
-
-    // add this to some kind of one time initialization routine
-    store.exec(String::from("CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT NOT NULL);"), &[]);
-    store.exec(String::from("CREATE TABLE IF NOT EXISTS tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);"), &[]);
-    store.exec(String::from("CREATE TABLE IF NOT EXISTS note_tags (id INTEGER PRIMARY KEY AUTOINCREMENT, note_id INTEGER NOT NULL, tag_id INTEGER NOT NULL, FOREIGN KEY(note_id) REFERENCES notes(id), FOREIGN KEY(tag_id) REFERENCES tags(id));"), &[]);
-
     // todo #945 add variadic positional argument
     // todo #946 add option to builder, to let help not be action taken if no command is not specified and instead print error
     let cli: CliCommand = CliCommandBuilder::default()
@@ -40,3 +32,4 @@ fn main() {
 // todo #952 active tui
 // todo #954 expose api as a library for external usage
 // todo inbox
+// todo version control through git, if user wants it, it initializes repo and helps with simple commands like undo or something
