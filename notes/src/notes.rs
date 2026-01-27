@@ -6,13 +6,15 @@ pub struct NoteInsert {
 
 pub struct Note {
     pub id: u64,
-    pub content: String
+    pub title: String,
+    pub content: String,
 }
 
 impl Clone for Note {
     fn clone(&self) -> Self {
         Note {
             id: self.id,
+            title: self.title.clone(),
             content: self.content.clone(),
         }
     }
@@ -20,7 +22,7 @@ impl Clone for Note {
 
 impl Debug for Note {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Note {{ id: {}, content: '{}' }}", self.id, self.content)
+        write!(f, "Note {{ id: {}, title: '{}', content: '{}' }}", self.id, self.title, self.content)
     }
 }
 
@@ -47,8 +49,45 @@ impl NoteRepo {
                 return None;
             }
 
+            use std::io::BufRead;
+            let mut note_title = String::new();
+
+            // read only line by line
+            let file = std::fs::File::open(entry.path());
+            if file.is_ok() {
+                let mut header_lines: Vec<String> = vec![];
+                let file_buffer = std::io::BufReader::new(file.unwrap());
+                let file_lines = file_buffer.lines();
+                let mut file_beginning = true;
+                let mut header_exists = false;
+
+                for line in file_lines {
+                    if let Ok(line_content) = line {
+                        note_title = line_content.clone();
+    
+                        if file_beginning && line_content == "---" {
+                            file_beginning = false;
+                            header_exists = true;
+                        } else if header_exists && line_content == "---" {
+                            break;
+                        } else if !file_beginning && header_exists {
+                            header_lines.push(line_content);
+                        } else {
+                            break;
+                        }
+                    }
+                }
+
+                for header_line in header_lines {
+                    if header_line.starts_with("title: ") {
+                        note_title = header_line.clone().replace("title: ", "");
+                    }
+                }
+            }
+
             Some(Note {
                 id: entry.path().file_stem()?.to_str().unwrap_or_default().parse().unwrap_or(0),
+                title: note_title,
                 content: read_to_string(entry.path()).unwrap_or_default(),
             })
         }).collect()
@@ -71,6 +110,7 @@ impl NoteRepo {
             if entry_name == id {
                 return Some(Note {
                     id: entry_name,
+                    title: "".to_string(), // todo?
                     content: read_to_string(entry.path()).unwrap_or_default(),
                 })
             }

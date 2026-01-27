@@ -103,12 +103,12 @@ pub fn build_list_command() -> CliCommand {
 
                 println!("Notes:");
                 for note in notes {
-                    let note_content = if note.content.len() > 50 {
-                        format!("{}...", &note.content[..47])
+                    let note_title = if note.title.len() > 50 {
+                        format!("{}...", &note.title[..47])
                     } else {
-                        note.content.clone()
+                        note.title.clone()
                     };
-                    println!("{}. {}", note.id, note_content);
+                    println!("{}. {}", note.id, note_title);
                 }
             }
         }).build()
@@ -225,6 +225,7 @@ pub fn build_delete_command() -> CliCommand {
         }).build()
 }
 
+// todo option --full to see headers too. same for get
 pub fn build_edit_command() -> CliCommand {
     CliCommandBuilder::default()
         .set_name("edit")
