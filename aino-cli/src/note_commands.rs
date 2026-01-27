@@ -103,12 +103,14 @@ pub fn build_list_command() -> CliCommand {
 
                 println!("Notes:");
                 for note in notes {
-                    let note_title = if note.title.len() > 50 {
-                        format!("{}...", &note.title[..47])
-                    } else {
-                        note.title.clone()
-                    };
-                    println!("{}. {}", note.id, note_title);
+                    if let Some(note_title) = note.details.title {
+                        let display_note_title = if note_title.len() > 50 {
+                            format!("{}...", &note_title[..47])
+                        } else {
+                            note_title.clone()
+                        };
+                        println!("{}. {}", note.id, display_note_title);
+                    }
                 }
             }
         }).build()

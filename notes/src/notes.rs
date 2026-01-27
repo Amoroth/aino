@@ -4,25 +4,49 @@ pub struct NoteInsert {
     pub content: String
 }
 
+pub struct NoteDetails {
+    pub title: Option<String>,
+}
+
+impl NoteDetails {
+    pub fn new() -> Self {
+        NoteDetails {
+            title: None
+        }
+    }
+
+    pub fn set_title(&mut self, new_title: &str) {
+        self.title = Some(new_title.to_string());
+    }
+}
+
+impl Clone for NoteDetails {
+    fn clone(&self) -> Self {
+        NoteDetails {
+            title: self.title.clone(),
+        }
+    }
+}
+
 pub struct Note {
     pub id: u64,
-    pub title: String,
     pub content: String,
+    pub details: NoteDetails,
 }
 
 impl Clone for Note {
     fn clone(&self) -> Self {
         Note {
             id: self.id,
-            title: self.title.clone(),
             content: self.content.clone(),
+            details: self.details.clone(),
         }
     }
 }
 
 impl Debug for Note {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Note {{ id: {}, title: '{}', content: '{}' }}", self.id, self.title, self.content)
+        write!(f, "Note {{ id: {}, content: '{}' }} | NoteDetails {{ title: '{:?}' }}", self.id, self.content, self.details.title)
     }
 }
 
@@ -49,46 +73,12 @@ impl NoteRepo {
                 return None;
             }
 
-            use std::io::BufRead;
-            let mut note_title = String::new();
-
-            // read only line by line
-            let file = std::fs::File::open(entry.path());
-            if file.is_ok() {
-                let mut header_lines: Vec<String> = vec![];
-                let file_buffer = std::io::BufReader::new(file.unwrap());
-                let file_lines = file_buffer.lines();
-                let mut file_beginning = true;
-                let mut header_exists = false;
-
-                for line in file_lines {
-                    if let Ok(line_content) = line {
-                        note_title = line_content.clone();
-    
-                        if file_beginning && line_content == "---" {
-                            file_beginning = false;
-                            header_exists = true;
-                        } else if header_exists && line_content == "---" {
-                            break;
-                        } else if !file_beginning && header_exists {
-                            header_lines.push(line_content);
-                        } else {
-                            break;
-                        }
-                    }
-                }
-
-                for header_line in header_lines {
-                    if header_line.starts_with("title: ") {
-                        note_title = header_line.clone().replace("title: ", "");
-                    }
-                }
-            }
+            let note_header = read_note_header(entry.path().to_str().unwrap_or_default());
 
             Some(Note {
                 id: entry.path().file_stem()?.to_str().unwrap_or_default().parse().unwrap_or(0),
-                title: note_title,
                 content: read_to_string(entry.path()).unwrap_or_default(),
+                details: note_header.unwrap_or_else(|_| { NoteDetails::new() })
             })
         }).collect()
     }
@@ -110,8 +100,8 @@ impl NoteRepo {
             if entry_name == id {
                 return Some(Note {
                     id: entry_name,
-                    title: "".to_string(), // todo?
                     content: read_to_string(entry.path()).unwrap_or_default(),
+                    details: NoteDetails::new(), // todo?
                 })
             }
 
@@ -165,6 +155,48 @@ impl NoteRepo {
         std::fs::write(file_path, note.content.clone()).map_err(|_| NoteIOError)?;
         Ok(())
     }
+}
+
+fn read_note_header(note_path: &str) -> Result<NoteDetails, NoteIOError> {
+    use std::io::BufRead;
+
+    let mut note_header = NoteDetails::new();
+
+    let file = std::fs::File::open(note_path);
+    if file.is_ok() {
+        let mut header_lines: Vec<String> = vec![];
+        let file_buffer = std::io::BufReader::new(file.unwrap());
+        let file_lines = file_buffer.lines();
+        let mut file_beginning = true;
+        let mut header_exists = false;
+
+        for line in file_lines {
+            if let Ok(line_content) = line {
+                note_header.set_title(line_content.clone().as_str());
+
+                if file_beginning && line_content == "---" {
+                    file_beginning = false;
+                    header_exists = true;
+                } else if header_exists && line_content == "---" {
+                    break;
+                } else if !file_beginning && header_exists {
+                    header_lines.push(line_content);
+                } else {
+                    break;
+                }
+            }
+        }
+
+        for header_line in header_lines {
+            if header_line.starts_with("title: ") {
+                note_header.set_title(header_line.clone().replace("title: ", "").as_str());
+            }
+        }
+
+        return Ok(note_header)
+    }
+
+    Err(NoteIOError)
 }
 
 #[cfg(test)]
