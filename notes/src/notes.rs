@@ -28,6 +28,19 @@ impl Clone for NoteDetails {
     }
 }
 
+impl ToString for NoteDetails {
+    fn to_string(&self) -> String {
+        let mut header: Vec<String> = vec!["---".to_string()];
+
+        if self.title.is_some() {
+            header.push("title: ".to_string() + self.title.clone().unwrap_or(String::new()).as_str())
+        }
+
+        header.push("---".to_string());
+        header.join("\n").clone()
+    }
+}
+
 pub struct Note {
     pub id: u64,
     pub content: String,
@@ -159,7 +172,15 @@ impl NoteRepo {
         }
 
         let file_path = notes_directory.join(note.id.to_string() + ".md");
-        std::fs::write(file_path, note.content.clone()).map_err(|_| NoteIOError)?;
+
+        let mut note_content = note.content.clone();
+        
+        if note_content.split_once("\n").unwrap_or_default().0 != "---" {
+            let note_header = read_note_header(file_path.to_str().unwrap_or_default()).unwrap_or(NoteDetails::new());
+            note_content = note_header.to_string() + "\n" + note_content.as_str();
+        }
+
+        std::fs::write(file_path, note_content).map_err(|_| NoteIOError)?;
         Ok(())
     }
 }
@@ -177,18 +198,20 @@ fn read_note_header(note_path: &str) -> Result<NoteDetails, NoteIOError> {
         let mut file_beginning = true;
         let mut header_exists = false;
 
+        // todo this function seems similar to read_note_contents
         for line in file_lines {
             if let Ok(line_content) = line {
-                note_header.set_title(line_content.clone().as_str());
-
                 if file_beginning && line_content == "---" {
                     file_beginning = false;
                     header_exists = true;
                 } else if header_exists && line_content == "---" {
-                    break;
+                    header_exists = false;
+
+                    // todo check if title exists and skip the last read line?
                 } else if !file_beginning && header_exists {
                     header_lines.push(line_content);
                 } else {
+                    note_header.set_title(line_content.clone().as_str());
                     break;
                 }
             }
