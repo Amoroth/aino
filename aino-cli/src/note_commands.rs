@@ -18,12 +18,18 @@ pub fn build_new_command() -> CliCommand {
                 description: Some("Create note interactivly through an external editor. One has to be provided through config or it will fail.".to_string()),
                 is_flag: false
             }
-        )
-        .add_option(
+        ).add_option(
             &CliCommandOption {
                 name: "tag".to_string(),
                 short_name: Some("t".to_string()),
                 description: Some("Add a tag to the note".to_string()),
+                is_flag: false
+            }
+        ).add_option(
+            &CliCommandOption {
+                name: "title".to_string(),
+                short_name: None,
+                description: Some("Set a custom note title".to_string()),
                 is_flag: false
             }
         ).set_action(|args: HashMap<String, Vec<String>>| {
@@ -68,7 +74,14 @@ pub fn build_new_command() -> CliCommand {
 
             let mut repo = NoteRepo {};
             let config = config::get_config();
-            let note_id = repo.insert(&config.notes_directory, NoteInsert { content: note_content.trim().to_string(), details: NoteDetails::new() });
+
+            let mut new_note_details = NoteDetails::new();
+            if let Some(note_title_arg) = args.get("title") && let Some(note_title) = note_title_arg.last() {
+                new_note_details.set_title(note_title);
+            }
+            let new_note = NoteInsert { content: note_content.trim().to_string(), details: new_note_details };
+
+            let note_id = repo.insert(&config.notes_directory, new_note);
             tag_repo.add_tags_to_note_id(note_id.unwrap() as u64, &tags); // handle error
         }).build()
 }

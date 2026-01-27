@@ -144,8 +144,8 @@ impl NoteRepo {
         let mut note_content = note.content.clone();
 
         if note.content.split_once("\n").unwrap_or_default().0 != "---" {
-            let default_header = "---\n---\n";
-            note_content = default_header.to_string() + note.content.as_str();
+            let note_header = note.details.to_string();
+            note_content = note_header + "\n" + note.content.as_str();
         }
 
         // todo should/can it be more safe?
