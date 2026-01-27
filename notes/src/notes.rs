@@ -101,7 +101,7 @@ impl NoteRepo {
                 return Some(Note {
                     id: entry_name,
                     content: read_note_content(entry.path().to_str().unwrap_or_default()).unwrap_or_default(),
-                    details: NoteDetails::new(), // todo?
+                    details: NoteDetails::new(),
                 })
             }
 
@@ -122,14 +122,21 @@ impl NoteRepo {
                 if !entry.path().is_file() {
                     return None;
                 }
-                entry.file_name().into_string().ok()?.parse::<u64>().ok()
+                entry.path().file_stem().unwrap_or_default().to_str().unwrap_or_default().parse::<u64>().ok()?.into()
             })
             .max()
             .unwrap_or(0) + 1;
 
+        let mut note_content = note.content.clone();
+
+        if note.content.split_once("\n").unwrap_or_default().0 != "---" {
+            let default_header = "---\n---\n";
+            note_content = default_header.to_string() + note.content.as_str();
+        }
+
         // todo should/can it be more safe?
         let new_file_path = notes_directory.join(new_id.to_string() + ".md");
-        std::fs::write(new_file_path, note.content).map_err(|_| NoteIOError)?;
+        std::fs::write(new_file_path, note_content).map_err(|_| NoteIOError)?;
 
         Ok(new_id as u32)
     }
