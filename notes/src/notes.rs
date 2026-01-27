@@ -77,7 +77,7 @@ impl NoteRepo {
 
             Some(Note {
                 id: entry.path().file_stem()?.to_str().unwrap_or_default().parse().unwrap_or(0),
-                content: read_to_string(entry.path()).unwrap_or_default(),
+                content: String::new(),
                 details: note_header.unwrap_or_else(|_| { NoteDetails::new() })
             })
         }).collect()
@@ -100,7 +100,7 @@ impl NoteRepo {
             if entry_name == id {
                 return Some(Note {
                     id: entry_name,
-                    content: read_to_string(entry.path()).unwrap_or_default(),
+                    content: read_note_content(entry.path().to_str().unwrap_or_default()).unwrap_or_default(),
                     details: NoteDetails::new(), // todo?
                 })
             }
@@ -194,6 +194,40 @@ fn read_note_header(note_path: &str) -> Result<NoteDetails, NoteIOError> {
         }
 
         return Ok(note_header)
+    }
+
+    Err(NoteIOError)
+}
+
+fn read_note_content(note_path: &str) -> Result<String, NoteIOError> {
+    use std::io::BufRead;
+
+    let mut note_header = NoteDetails::new();
+
+    let file = std::fs::File::open(note_path);
+    if file.is_ok() {
+        let mut content_lines: Vec<String> = vec![];
+        let file_buffer = std::io::BufReader::new(file.unwrap());
+        let file_lines = file_buffer.lines();
+        let mut file_beginning = true;
+        let mut header_exists = false;
+
+        for line in file_lines {
+            if let Ok(line_content) = line {
+                note_header.set_title(line_content.clone().as_str());
+
+                if file_beginning && line_content == "---" {
+                    file_beginning = false;
+                    header_exists = true;
+                } else if header_exists && line_content == "---" {
+                    header_exists = false;
+                } else if !file_beginning && !header_exists {
+                    content_lines.push(line_content);
+                }
+            }
+        }
+
+        return Ok(content_lines.join("\n"))
     }
 
     Err(NoteIOError)
