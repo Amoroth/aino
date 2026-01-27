@@ -177,7 +177,7 @@ impl NoteRepo {
         let mut note_content = note.content.clone();
         
         if note_content.split_once("\n").unwrap_or_default().0 != "---" {
-            let note_header = read_note_header(file_path.to_str().unwrap_or_default()).unwrap_or(NoteDetails::new());
+            let note_header = note.details.to_string();
             note_content = note_header.to_string() + "\n" + note_content.as_str();
         }
 

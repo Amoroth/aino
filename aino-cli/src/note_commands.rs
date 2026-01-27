@@ -260,6 +260,13 @@ pub fn build_edit_command() -> CliCommand {
                 description: Some("Edit note interactivly through an external editor. One has to be provided through config or it will fail.".to_string()),
                 is_flag: false
             }
+        ).add_option(
+            &CliCommandOption {
+                name: "title".to_string(),
+                short_name: None,
+                description: Some("Set a custom note title".to_string()),
+                is_flag: false
+            }
         ).set_action(|args: HashMap<String, Vec<String>>| {
             let id_str = args.get("id").and_then(|v| v.last());
             let id = match id_str {
@@ -301,6 +308,10 @@ pub fn build_edit_command() -> CliCommand {
             } else {
                 args.get("message").and_then(|v| v.last()).unwrap_or(&String::new()).to_string()
             };
+
+            if let Some(note_title_arg) = args.get("title") && let Some(note_title) = note_title_arg.last() {
+                note.details.set_title(note_title);
+            }
 
             note.content = edited_note_content.trim().to_string();
             let config = config::get_config();
