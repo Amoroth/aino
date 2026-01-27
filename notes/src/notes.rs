@@ -1,7 +1,8 @@
-use std::{fs::read_to_string, path::Path, fmt::Debug};
+use std::{path::Path, fmt::Debug};
 
 pub struct NoteInsert {
-    pub content: String
+    pub content: String,
+    pub details: NoteDetails,
 }
 
 pub struct NoteDetails {

@@ -3,7 +3,7 @@ use std::{collections::HashMap, io::Write};
 use cli::{print_utils, CliCommandBuilder, CliCommand, CliCommandOption};
 use crate::{config};
 use notes::tags::{Tag, TagRepo};
-use notes::notes::{NoteInsert, Note, NoteRepo};
+use notes::notes::{Note, NoteDetails, NoteInsert, NoteRepo};
 
 pub fn build_new_command() -> CliCommand {
     CliCommandBuilder::default()
@@ -68,7 +68,7 @@ pub fn build_new_command() -> CliCommand {
 
             let mut repo = NoteRepo {};
             let config = config::get_config();
-            let note_id = repo.insert(&config.notes_directory, NoteInsert { content: note_content.trim().to_string() });
+            let note_id = repo.insert(&config.notes_directory, NoteInsert { content: note_content.trim().to_string(), details: NoteDetails::new() });
             tag_repo.add_tags_to_note_id(note_id.unwrap() as u64, &tags); // handle error
         }).build()
 }
