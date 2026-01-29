@@ -69,6 +69,12 @@ pub struct NoteRepo;
 #[derive(Debug, Clone)]
 pub struct NoteIOError;
 
+impl From<std::io::Error> for NoteIOError {
+    fn from(_: std::io::Error) -> Self {
+        NoteIOError
+    }
+}
+
 const SUPPORTED_FORMATS: [&str; 1] = ["md"];
 
 // todo try to make this immutable
@@ -191,43 +197,39 @@ fn read_note_header(note_path: &str) -> Result<NoteDetails, NoteIOError> {
 
     let mut note_header = NoteDetails::new();
 
-    let file = std::fs::File::open(note_path);
-    if file.is_ok() {
-        let mut header_lines: Vec<String> = vec![];
-        let file_buffer = std::io::BufReader::new(file.unwrap());
-        let file_lines = file_buffer.lines();
-        let mut file_beginning = true;
-        let mut header_exists = false;
+    let file = std::fs::File::open(note_path)?;
+    let mut header_lines: Vec<String> = Vec::new();
+    let file_buffer = std::io::BufReader::new(file);
+    let file_lines = file_buffer.lines();
+    let mut file_beginning = true;
+    let mut header_exists = false;
 
-        // todo this function seems similar to read_note_contents
-        for line in file_lines {
-            if let Ok(line_content) = line {
-                if file_beginning && line_content == "---" {
-                    file_beginning = false;
-                    header_exists = true;
-                } else if header_exists && line_content == "---" {
-                    header_exists = false;
+    // todo this function seems similar to read_note_contents
+    for line in file_lines {
+        if let Ok(line_content) = line {
+            if file_beginning && line_content == "---" {
+                file_beginning = false;
+                header_exists = true;
+            } else if header_exists && line_content == "---" {
+                header_exists = false;
 
-                    // todo check if title exists and skip the last read line?
-                } else if !file_beginning && header_exists {
-                    header_lines.push(line_content);
-                } else {
-                    note_header.set_title(line_content.clone().as_str());
-                    break;
-                }
+                // todo check if title exists and skip the last read line?
+            } else if !file_beginning && header_exists {
+                header_lines.push(line_content);
+            } else {
+                note_header.set_title(line_content.as_str());
+                break;
             }
         }
-
-        for header_line in header_lines {
-            if header_line.starts_with("title: ") {
-                note_header.set_title(header_line.clone().replace("title: ", "").as_str());
-            }
-        }
-
-        return Ok(note_header)
     }
 
-    Err(NoteIOError)
+    for header_line in header_lines {
+        if header_line.starts_with("title: ") {
+            note_header.set_title(header_line.replace("title: ", "").as_str());
+        }
+    }
+
+    Ok(note_header)
 }
 
 fn read_note_content(note_path: &str) -> Result<String, NoteIOError> {
