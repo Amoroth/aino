@@ -42,6 +42,12 @@ impl ToString for NoteDetails {
     }
 }
 
+impl Debug for NoteDetails {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "NoteDetails {{ title: {} }}", self.title.as_ref().unwrap_or(&"".to_string()))
+    }
+}
+
 pub struct Note {
     pub id: u64,
     pub content: String,
@@ -201,8 +207,6 @@ fn read_note_header(note_path: &str) -> Result<NoteDetails, NoteIOError> {
     let file_buffer = std::io::BufReader::new(file);
     let mut file_lines = file_buffer.lines().peekable();
 
-    let mut header_lines: Vec<String> = Vec::new();
-
     if let Some(Ok(line_content)) = file_lines.peek() {
         if line_content == "---" {
             file_lines.next();
@@ -210,24 +214,20 @@ fn read_note_header(note_path: &str) -> Result<NoteDetails, NoteIOError> {
             for line in &mut file_lines {
                 if let Ok(line_content) = line {
                     if line_content == "---" {
-                        if let Some(Ok(next_line_content)) = file_lines.next() {
+                        if note_header.title.is_none() && let Some(Ok(next_line_content)) = file_lines.peek() {
                             note_header.set_title(next_line_content.as_str());
                         }
 
                         break;
                     }
 
-                    header_lines.push(line_content);
+                    if let Some(title_line) = line_content.strip_prefix("title: ") {
+                        note_header.set_title(title_line);
+                    }
                 }
             }
         } else {
             note_header.set_title(line_content.as_str());
-        }
-    }
-
-    for header_line in header_lines {
-        if header_line.starts_with("title: ") {
-            note_header.set_title(header_line.replace("title: ", "").as_str());
         }
     }
 
