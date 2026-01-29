@@ -207,27 +207,30 @@ fn read_note_header(note_path: &str) -> Result<NoteDetails, NoteIOError> {
     let file_buffer = std::io::BufReader::new(file);
     let mut file_lines = file_buffer.lines().peekable();
 
-    if let Some(Ok(line_content)) = file_lines.peek() {
-        if line_content == "---" {
-            file_lines.next();
+    let first_line = file_lines.peek()
+        .and_then(|first| { first.as_ref().ok() })
+        .ok_or(NoteIOError)?;
 
-            for line in &mut file_lines {
-                if let Ok(line_content) = line {
-                    if line_content == "---" {
-                        if note_header.title.is_none() && let Some(Ok(next_line_content)) = file_lines.peek() {
-                            note_header.set_title(next_line_content.as_str());
-                        }
+    if first_line != "---" {
+        note_header.set_title(first_line.as_str());
+        return Ok(note_header);
+    }
 
-                        break;
-                    }
+    file_lines.next();
 
-                    if let Some(title_line) = line_content.strip_prefix("title: ") {
-                        note_header.set_title(title_line);
-                    }
+    for line in &mut file_lines {
+        if let Ok(line_content) = line {
+            if line_content == "---" {
+                if note_header.title.is_none() && let Some(Ok(next_line_content)) = file_lines.peek() {
+                    note_header.set_title(next_line_content.as_str());
                 }
+
+                break;
             }
-        } else {
-            note_header.set_title(line_content.as_str());
+
+            if let Some(title_line) = line_content.strip_prefix("title: ") {
+                note_header.set_title(title_line);
+            }
         }
     }
 
