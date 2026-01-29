@@ -198,28 +198,30 @@ fn read_note_header(note_path: &str) -> Result<NoteDetails, NoteIOError> {
     let mut note_header = NoteDetails::new();
 
     let file = std::fs::File::open(note_path)?;
-    let mut header_lines: Vec<String> = Vec::new();
     let file_buffer = std::io::BufReader::new(file);
-    let file_lines = file_buffer.lines();
-    let mut file_beginning = true;
-    let mut header_exists = false;
+    let mut file_lines = file_buffer.lines().peekable();
 
-    // todo this function seems similar to read_note_contents
-    for line in file_lines {
-        if let Ok(line_content) = line {
-            if file_beginning && line_content == "---" {
-                file_beginning = false;
-                header_exists = true;
-            } else if header_exists && line_content == "---" {
-                header_exists = false;
+    let mut header_lines: Vec<String> = Vec::new();
 
-                // todo check if title exists and skip the last read line?
-            } else if !file_beginning && header_exists {
-                header_lines.push(line_content);
-            } else {
-                note_header.set_title(line_content.as_str());
-                break;
+    if let Some(Ok(line_content)) = file_lines.peek() {
+        if line_content == "---" {
+            file_lines.next();
+
+            for line in &mut file_lines {
+                if let Ok(line_content) = line {
+                    if line_content == "---" {
+                        if let Some(Ok(next_line_content)) = file_lines.next() {
+                            note_header.set_title(next_line_content.as_str());
+                        }
+
+                        break;
+                    }
+
+                    header_lines.push(line_content);
+                }
             }
+        } else {
+            note_header.set_title(line_content.as_str());
         }
     }
 
