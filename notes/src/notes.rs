@@ -1,4 +1,4 @@
-use std::{path::Path, fmt::Debug};
+use std::{path::Path, fmt::Debug, io::BufRead};
 
 pub struct NoteInsert {
     pub content: String,
@@ -199,8 +199,6 @@ impl NoteRepo {
 }
 
 fn read_note_header(note_path: &str) -> Result<NoteDetails, NoteIOError> {
-    use std::io::BufRead;
-
     let mut note_header = NoteDetails::new();
 
     let file = std::fs::File::open(note_path)?;
@@ -238,37 +236,28 @@ fn read_note_header(note_path: &str) -> Result<NoteDetails, NoteIOError> {
 }
 
 fn read_note_content(note_path: &str) -> Result<String, NoteIOError> {
-    use std::io::BufRead;
+    let file = std::fs::File::open(note_path)?;
+    let file_buffer = std::io::BufReader::new(file);
+    let mut file_lines = file_buffer.lines().peekable();
 
-    let mut note_header = NoteDetails::new();
+    let first_line = file_lines.peek()
+        .and_then(|first| { first.as_ref().ok() })
+        .ok_or(NoteIOError)?;
 
-    let file = std::fs::File::open(note_path);
-    if file.is_ok() {
-        let mut content_lines: Vec<String> = vec![];
-        let file_buffer = std::io::BufReader::new(file.unwrap());
-        let file_lines = file_buffer.lines();
-        let mut file_beginning = true;
-        let mut header_exists = false;
-
-        for line in file_lines {
-            if let Ok(line_content) = line {
-                note_header.set_title(line_content.clone().as_str());
-
-                if file_beginning && line_content == "---" {
-                    file_beginning = false;
-                    header_exists = true;
-                } else if header_exists && line_content == "---" {
-                    header_exists = false;
-                } else if !file_beginning && !header_exists {
-                    content_lines.push(line_content);
-                }
+    if first_line == "---" {
+        file_lines.next();
+        for line in &mut file_lines {
+            if let Ok("---") = line.as_deref() {
+                break;
             }
         }
-
-        return Ok(content_lines.join("\n"))
     }
 
-    Err(NoteIOError)
+    let content_lines: Vec<String> = file_lines
+        .filter_map(|l| { l.ok() })
+        .collect();
+
+    return Ok(content_lines.join("\n"))
 }
 
 #[cfg(test)]
